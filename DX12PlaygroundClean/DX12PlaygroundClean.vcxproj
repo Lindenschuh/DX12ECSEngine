@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -82,9 +82,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -106,15 +112,41 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
+      <SDLCheck>false</SDLCheck>
+      <ConformanceMode>false</ConformanceMode>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DX12Context.cpp" />
+    <ClCompile Include="DXHelpers.cpp" />
+    <ClCompile Include="FrameResource.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="InitDX.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="Waves.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Default.h" />
+    <ClInclude Include="DX12Context.h" />
+    <ClInclude Include="DXHelpers.h" />
+    <ClInclude Include="DynamicArray.h" />
+    <ClInclude Include="Ext\d3dx12.h" />
+    <ClInclude Include="FrameResource.h" />
+    <ClInclude Include="DXData.h" />
+    <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="InitDX.h" />
+    <ClInclude Include="RenderElements.h" />
+    <ClInclude Include="SimpleHashTable.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
