@@ -1,5 +1,5 @@
 #include "InitDX.h"
-#include "DynamicArray.h"
+#include "Ext/DDSTextureLoader.h"
 
 static float GetHillsHeight(float x, float z)
 {
@@ -18,6 +18,31 @@ static XMFLOAT3 GetHillsNormal(float x, float z)
 	XMStoreFloat3(&n, unitNormal);
 
 	return n;
+}
+
+static void loadTextures(DX12Render& rd, DX12Context& dx)
+{
+	Texture grassTex;
+	grassTex.Filename = L"Textures/grass.dds";
+	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
+		dx.mCmdList.Get(), grassTex.Filename.c_str(),
+		grassTex.Resource, grassTex.UploadHeap));
+
+	Texture waterTex;
+	waterTex.Filename = L"Textures/water1.dds";
+	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
+		dx.mCmdList.Get(), waterTex.Filename.c_str(),
+		waterTex.Resource, waterTex.UploadHeap));
+
+	Texture fenceTex;
+	fenceTex.Filename = L"Textures/WoodCrate01.dds";
+	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
+		dx.mCmdList.Get(), fenceTex.Filename.c_str(),
+		fenceTex.Resource, fenceTex.UploadHeap));
+
+	rd.AddTexture("grassTex", grassTex);
+	rd.AddTexture("waterTex", waterTex);
+	rd.AddTexture("fenceTex", fenceTex);
 }
 
 static void buildRenderItems(DX12Render& rd)

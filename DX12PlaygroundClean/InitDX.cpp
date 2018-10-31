@@ -105,6 +105,7 @@ void DX12Render::Draw()
 	mDXCon->mCmdList->SetDescriptorHeaps(1, mDXCon->mSRVHeap.GetAddressOf());
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mDXCon->mCmdList.Get());
+
 	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackbuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	HR(mDXCon->mCmdList->Close());
@@ -279,14 +280,21 @@ void DX12Render::calculateFrameStats()
 
 void DX12Render::buildRootSignature()
 {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+	CD3DX12_DESCRIPTOR_RANGE texTable;
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-	slotRootParameter[0].InitAsConstantBufferView(0);
-	slotRootParameter[1].InitAsConstantBufferView(1);
-	slotRootParameter[2].InitAsConstantBufferView(2);
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(3, slotRootParameter,
-		0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[1].InitAsConstantBufferView(0);
+	slotRootParameter[2].InitAsConstantBufferView(1);
+	slotRootParameter[3].InitAsConstantBufferView(2);
+
+	auto staticSmaplers = mDXCon->GetStaticSamplers();
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
+		staticSmaplers.size, staticSmaplers.data(),
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;

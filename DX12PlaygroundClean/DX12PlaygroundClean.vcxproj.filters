@@ -45,6 +45,9 @@
     <ClCompile Include="Ext\imgui_impl_win32.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="Ext\DDSTextureLoader.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ext\d3dx12.h">
@@ -90,6 +93,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="Ext\imgui_impl_win32.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Ext\DDSTextureLoader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

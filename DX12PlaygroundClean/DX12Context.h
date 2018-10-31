@@ -3,7 +3,7 @@
 #include <WindowsX.h>
 #include "Ext/imgui_impl_win32.h"
 #include "Ext/imgui_impl_dx12.h"
-
+#include <array>
 const char gClassName[] = "WindowClassName";
 
 // Variables
@@ -179,6 +179,7 @@ public:
 	DX12Context(u32 width, u32 height, const char* windowTitle);
 	void flushCommandQueue();
 	void ExecuteCmdList();
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 	void resize(u32 width, u32 height);
 private:
 	void initDX12(void);
