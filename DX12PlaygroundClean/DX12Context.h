@@ -1,6 +1,9 @@
 #pragma once
 #include "Default.h"
 #include <WindowsX.h>
+#include "Ext/imgui_impl_win32.h"
+#include "Ext/imgui_impl_dx12.h"
+
 const char gClassName[] = "WindowClassName";
 
 // Variables
@@ -27,9 +30,14 @@ struct GlobalEvent
 
 extern GlobalEvent gGlobalEvents;
 
+extern LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 	WPARAM wParam, LPARAM lParam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+		return true;
+
 	switch (msg)
 	{
 	case WM_SIZE:
@@ -149,6 +157,7 @@ public:
 
 	ComPtr<ID3D12DescriptorHeap> mRTVHeap;
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;
+	ComPtr<ID3D12DescriptorHeap> mSRVHeap;
 
 	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 

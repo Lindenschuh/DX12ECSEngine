@@ -126,6 +126,8 @@
   <ItemGroup>
     <ClCompile Include="DX12Context.cpp" />
     <ClCompile Include="DXHelpers.cpp" />
+    <ClCompile Include="Ext\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Ext\imgui_impl_win32.cpp" />
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="InitDX.cpp" />
@@ -139,6 +141,8 @@
     <ClInclude Include="DXHelpers.h" />
     <ClInclude Include="DynamicArray.h" />
     <ClInclude Include="Ext\d3dx12.h" />
+    <ClInclude Include="Ext\imgui_impl_dx12.h" />
+    <ClInclude Include="Ext\imgui_impl_win32.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="DXData.h" />
     <ClInclude Include="GeometryGenerator.h" />

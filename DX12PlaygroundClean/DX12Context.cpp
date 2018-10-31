@@ -148,10 +148,18 @@ void DX12Context::buildDescriptorHeaps()
 	depthStencilViewHeapDesc.NodeMask = 0;
 	HR(mD3dDevice->CreateDescriptorHeap(&depthStencilViewHeapDesc,
 		IID_PPV_ARGS(mDSVHeap.GetAddressOf())));
+
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = 1;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	HR(mD3dDevice->CreateDescriptorHeap(&srvHeapDesc,
+		IID_PPV_ARGS(mSRVHeap.GetAddressOf())));
 }
 
 void DX12Context::resize(u32 width, u32 height)
 {
+	ImGui_ImplDX12_InvalidateDeviceObjects();
 	Window->width = width;
 	Window->height = height;
 
@@ -225,6 +233,8 @@ void DX12Context::resize(u32 width, u32 height)
 	mCmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
 	flushCommandQueue();
+
+	ImGui_ImplDX12_CreateDeviceObjects();
 
 	mViewPort.TopLeftX = 0.0f;
 	mViewPort.TopLeftY = 0.0f;

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "InitDX.h"
-
+#include "Ext/imgui_impl_win32.h"
+#include "Ext/imgui_impl_dx12.h"
 RenderItem* gWavesRItem = nullptr;
 
 static void UpdateWaves(GameTimer* mTimer, UploadBuffer<Vertex1>* currWavesVB, DX12Render& render)
@@ -41,6 +42,16 @@ DX12Render::DX12Render(DX12Context* context)
 {
 	mTimer = new GameTimer();
 	mDXCon = context;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplWin32_Init(mDXCon->Window->hwnd);
+	ImGui_ImplDX12_Init(mDXCon->mD3dDevice.Get(), gNumFrameResources,
+		mDXCon->mBackBufferFormat, mDXCon->mSRVHeap->GetCPUDescriptorHandleForHeapStart(),
+		mDXCon->mSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	buildRootSignature();
 	buildShaders();
@@ -91,6 +102,9 @@ void DX12Render::Draw()
 
 	drawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque]);
 
+	mDXCon->mCmdList->SetDescriptorHeaps(1, mDXCon->mSRVHeap.GetAddressOf());
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mDXCon->mCmdList.Get());
 	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackbuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	HR(mDXCon->mCmdList->Close());
@@ -110,6 +124,10 @@ void DX12Render::Update()
 {
 	OnKeyBoardInput();
 	UpdateCamera();
+
+	bool show_demo_window = true;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	mCurrentFrameResourceIndex = (mCurrentFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrentFrameResource = &mFrameResources[mCurrentFrameResourceIndex];
@@ -195,7 +213,8 @@ void DX12Render::processGlobalEvents()
 {
 	if (gGlobalEvents.isResized)
 	{
-		mDXCon->resize(gGlobalEvents.ResizeWidth, gGlobalEvents.ResizeWidth);
+		mDXCon->resize(gGlobalEvents.ResizeWidth, gGlobalEvents.ResizeHeight);
+
 		gGlobalEvents.isResized = false;
 		XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
 		XMStoreFloat4x4(&mProj, p);

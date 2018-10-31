@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <windows.h>
 #include <stdio.h>
 #include <d3d12.h>
 #include "Ext/d3dx12.h"
@@ -14,6 +13,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string.h>
+#include <imgui.h>
 
 #define MALLOC(t,n) ((t *) malloc((n)*sizeof(t)))
 #define ALLOCA(t,n) ((t *) alloca((n)*sizeof(t)))
