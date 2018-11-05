@@ -52,6 +52,7 @@ static void buildRenderItems(DX12Render& rd)
 	wavesRitem.WorldPos = Identity4x4();
 	wavesRitem.ObjCBIndex = 0;
 	wavesRitem.MatCBIndex = rd.GetMaterial("water")->MatCBIndex;
+	wavesRitem.texHeapIndex = rd.GetMaterial("water")->DiffuseSrvHeapIndex;
 	wavesRitem.GeoIndex = md->GeometryIndex;
 	wavesRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	wavesRitem.IndexCount = md->Submeshes["grid"].IndexCount;
@@ -66,6 +67,7 @@ static void buildRenderItems(DX12Render& rd)
 	gridRitem.WorldPos = Identity4x4();
 	gridRitem.ObjCBIndex = 1;
 	gridRitem.MatCBIndex = rd.GetMaterial("grass")->MatCBIndex;
+	gridRitem.texHeapIndex = rd.GetMaterial("grass")->DiffuseSrvHeapIndex;
 	gridRitem.GeoIndex = md->GeometryIndex;
 	gridRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	gridRitem.IndexCount = md->Submeshes["grid"].IndexCount;
@@ -73,44 +75,99 @@ static void buildRenderItems(DX12Render& rd)
 	gridRitem.baseVertexLocation = md->Submeshes["grid"].BaseVertexLocation;
 
 	rd.AddRenderItem("gridItem", gridRitem, RenderLayer::Opaque);
+
+	md = rd.GetGeometry("boxGeo");
+	RenderItem boxRitem;
+	XMStoreFloat4x4(&boxRitem.WorldPos, XMMatrixTranslation(3.0f, 2.0f, -9.0f));
+	boxRitem.ObjCBIndex = 2;
+	boxRitem.MatCBIndex = rd.GetMaterial("wirefence")->MatCBIndex;
+	boxRitem.texHeapIndex = rd.GetMaterial("wirefence")->DiffuseSrvHeapIndex;
+	boxRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	boxRitem.GeoIndex = md->GeometryIndex;
+	boxRitem.IndexCount = md->Submeshes["box"].IndexCount;
+	boxRitem.StartIndexLocation = md->Submeshes["box"].StartIndexLocation;
+	boxRitem.baseVertexLocation = md->Submeshes["box"].BaseVertexLocation;
+
+	rd.AddRenderItem("boxItem", boxRitem, RenderLayer::Opaque);
 }
 
+struct GeoBuildInfo
+{
+	Vertex* verts;
+	u16* indicies;
+	u32 vertCount;
+	u32 indiceCount;
+};
+
+static void AllocateGeometry(GeoBuildInfo* geoInfo, MeshGeometry* meshGeo, DX12Context* dxC)
+{
+	const u32 vbByteSize = geoInfo->vertCount * sizeof(Vertex);
+	const u32 ibByteSize = geoInfo->indiceCount * sizeof(u16);
+
+	HR(D3DCreateBlob(vbByteSize, &meshGeo->VertexBufferCPU));
+	CopyMemory(meshGeo->VertexBufferCPU->GetBufferPointer(), geoInfo->verts, vbByteSize);
+
+	HR(D3DCreateBlob(ibByteSize, &meshGeo->IndexBufferCPU));
+	CopyMemory(meshGeo->IndexBufferCPU->GetBufferPointer(), geoInfo->indicies, ibByteSize);
+
+	meshGeo->VertexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
+		geoInfo->verts, vbByteSize, meshGeo->VertexBufferUploader);
+
+	meshGeo->IndexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
+		geoInfo->indicies, ibByteSize, meshGeo->IndexBufferUploader);
+
+	meshGeo->VertexByteStride = sizeof(Vertex);
+	meshGeo->VertexBufferByteSize = vbByteSize;
+	meshGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
+	meshGeo->IndexBufferByteSize = ibByteSize;
+}
+static void buildBoxGeo(DX12Render& rd, DX12Context* dxC)
+{
+	GeometryGenerator geoGen;
+	MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
+
+	std::vector<Vertex> vertices(box.Vertices.size());
+	for (size_t i = 0; i < box.Vertices.size(); ++i)
+	{
+		auto& p = box.Vertices[i].Position;
+		vertices[i].Pos = p;
+		vertices[i].Normal = box.Vertices[i].Normal;
+		vertices[i].TexC = box.Vertices[i].TexCoord;
+	}
+
+	MeshGeometry geo;
+	GeoBuildInfo gInfo = { vertices.data(),box.Indicies.data(),vertices.size(),box.Indicies.size() };
+	AllocateGeometry(&gInfo, &geo, dxC);
+
+	Submesh submesh;
+	submesh.IndexCount = box.Indicies.size();
+	submesh.StartIndexLocation = 0;
+	submesh.BaseVertexLocation = 0;
+
+	geo.Submeshes["box"] = submesh;
+
+	rd.AddGeometry("boxGeo", geo);
+}
 static void buildLandGeometry(DX12Render& rd, DX12Context* dxC)
 {
 	GeometryGenerator geoGen;
 	MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
 
-	std::vector<Vertex1> vertices;
+	std::vector<Vertex> vertices;
 	for (u32 i = 0; i < grid.Vertices.size(); i++)
 	{
-		Vertex1 v;
+		Vertex v;
 		v.Pos = grid.Vertices[i].Position;
 		v.Pos.y = GetHillsHeight(v.Pos.x, v.Pos.z);
 		v.Normal = GetHillsNormal(v.Pos.x, v.Pos.z);
+		v.TexC = grid.Vertices[i].TexCoord;
 		vertices.push_back(v);
 	}
 
-	const u32 vbByteSize = vertices.size() * sizeof(Vertex1);
-	const u32 ibByteSize = grid.Indicies.size() * sizeof(u16);
-
 	MeshGeometry geo;
 
-	HR(D3DCreateBlob(vbByteSize, &geo.VertexBufferCPU));
-	CopyMemory(geo.VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-	HR(D3DCreateBlob(ibByteSize, &geo.IndexBufferCPU));
-	CopyMemory(geo.IndexBufferCPU->GetBufferPointer(), grid.Indicies.data(), ibByteSize);
-
-	geo.VertexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
-		vertices.data(), vbByteSize, geo.VertexBufferUploader);
-
-	geo.IndexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
-		grid.Indicies.data(), ibByteSize, geo.IndexBufferUploader);
-
-	geo.VertexByteStride = sizeof(Vertex1);
-	geo.VertexBufferByteSize = vbByteSize;
-	geo.IndexFormat = DXGI_FORMAT_R16_UINT;
-	geo.IndexBufferByteSize = ibByteSize;
+	GeoBuildInfo gInfo = { vertices.data(),grid.Indicies.data(),vertices.size(),grid.Indicies.size() };
+	AllocateGeometry(&gInfo, &geo, dxC);
 
 	Submesh submesh;
 	submesh.IndexCount = grid.Indicies.size();
@@ -127,19 +184,29 @@ static void buildMaterials(DX12Render& rd)
 	Material grass;
 	//"grass";
 	grass.MatCBIndex = 0;
-	grass.DiffuseAlbedo = { 0.2f, 0.6f, 0.2f, 1.0f };
+	grass.DiffuseSrvHeapIndex = 0;
+	grass.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	grass.FresnelR0 = { 0.01f, 0.01f, 0.01f };
 	grass.Roughness = 0.125f;
 
 	Material water;
 	// 	water.Name = "water";
 	water.MatCBIndex = 1;
-	water.DiffuseAlbedo = { 0.0f, 0.2f, 0.6f, 1.0f };
-	water.FresnelR0 = { 0.1f, 0.1f, 0.1f };
+	water.DiffuseSrvHeapIndex = 1;
+	water.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	water.FresnelR0 = { 0.2f, 0.2f, 0.2f };
 	water.Roughness = 0.0f;
+
+	Material wirefence;
+	wirefence.MatCBIndex = 2;
+	wirefence.DiffuseSrvHeapIndex = 2;
+	wirefence.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	wirefence.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	wirefence.Roughness = 0.25f;
 
 	rd.AddMaterial("grass", grass);
 	rd.AddMaterial("water", water);
+	rd.AddMaterial("wirefence", wirefence);
 }
 
 static void buildWavesGeometryBuffers(DX12Render& rd, DX12Context* dxC)
@@ -166,7 +233,7 @@ static void buildWavesGeometryBuffers(DX12Render& rd, DX12Context* dxC)
 		}
 	}
 
-	u32 vbByteSize = gWaves->VertexCount() * sizeof(Vertex1);
+	u32 vbByteSize = gWaves->VertexCount() * sizeof(Vertex);
 	u32 ibByteSize = indicesCount * sizeof(u16);
 
 	MeshGeometry geo;
@@ -182,7 +249,7 @@ static void buildWavesGeometryBuffers(DX12Render& rd, DX12Context* dxC)
 	geo.IndexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(),
 		dxC->mCmdList.Get(), indices.data(), ibByteSize, geo.IndexBufferUploader);
 
-	geo.VertexByteStride = sizeof(Vertex1);
+	geo.VertexByteStride = sizeof(Vertex);
 	geo.VertexBufferByteSize = vbByteSize;
 	geo.IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo.IndexBufferByteSize = ibByteSize;
@@ -208,15 +275,16 @@ int main()
 	DX12Render* render = new DX12Render(dxC);
 
 	buildLandGeometry(*render, dxC);
-	buildMaterials(*render);
 	buildWavesGeometryBuffers(*render, dxC);
+	buildBoxGeo(*render, dxC);
+	loadTextures(*render, *dxC);
+	buildMaterials(*render);
 	buildRenderItems(*render);
 	render->FinishSetup();
-
+	Material* grass = render->GetMaterial("grass");
+	XMFLOAT4 grassColor = grass->DiffuseAlbedo;
 	while (render->isWindowActive())
 	{
-		render->Update();
-
 		ImGui_ImplWin32_NewFrame();
 		ImGui_ImplDX12_NewFrame();
 		ImGui::NewFrame();
@@ -235,7 +303,7 @@ int main()
 			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
 			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
 			ImGui::Checkbox("Another Window", &show_another_window);
-
+			ImGui::ColorPicker4("Pick Color", &grassColor.x);
 			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
 			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
@@ -258,6 +326,9 @@ int main()
 			ImGui::End();
 		}
 
+		grass->DiffuseAlbedo = grassColor;
+		grass->NumFramesDirty = gNumFrameResources;
+		render->Update();
 		render->Draw();
 	}
 

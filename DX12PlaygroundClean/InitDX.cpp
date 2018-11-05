@@ -4,7 +4,7 @@
 #include "Ext/imgui_impl_dx12.h"
 RenderItem* gWavesRItem = nullptr;
 
-static void UpdateWaves(GameTimer* mTimer, UploadBuffer<Vertex1>* currWavesVB, DX12Render& render)
+static void UpdateWaves(GameTimer* mTimer, UploadBuffer<Vertex>* currWavesVB, DX12Render& render)
 {
 	// Every quarter second, generate a random wave.
 	static float t_base = 0.0f;
@@ -26,10 +26,13 @@ static void UpdateWaves(GameTimer* mTimer, UploadBuffer<Vertex1>* currWavesVB, D
 	// Update the wave vertex buffer with the new solution.
 	for (int i = 0; i < gWaves->VertexCount(); ++i)
 	{
-		Vertex1 v;
+		Vertex v;
 
 		v.Pos = gWaves->mCurrSolution[i];
 		v.Normal = gWaves->mNormals[i];
+
+		v.TexC.x = 0.5f + v.Pos.x / gWaves->Width();
+		v.TexC.y = 0.5f - v.Pos.z / gWaves->Depth();
 
 		currWavesVB->CopyData(i, v);
 	}
@@ -95,6 +98,9 @@ void DX12Render::Draw()
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	mDXCon->mCmdList->OMSetRenderTargets(1, &CurrentbackBufferView(), true, &DepthStencilView());
 
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mDXCon->mTextureHeap.Get() };
+	mDXCon->mCmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
 	mDXCon->mCmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	auto passCB = mCurrentFrameResource->PassCB->Resource();
@@ -150,6 +156,7 @@ void DX12Render::Update()
 	UpdateMainPassCB(mMainPassCB, mCurrentFrameResource->PassCB);
 
 	UpdateWaves(mTimer, mCurrentFrameResource->WavesVB, *this);
+	AnimateMaterials();
 }
 
 void DX12Render::AddMaterial(std::string name, Material m)
@@ -198,6 +205,7 @@ RenderItem * DX12Render::GetRenderItem(std::string name)
 
 void DX12Render::FinishSetup()
 {
+	buildDescriptorHeaps();
 	buildFrameResources();
 
 	HR(mDXCon->mCmdList->Close());
@@ -293,7 +301,7 @@ void DX12Render::buildRootSignature()
 	auto staticSmaplers = mDXCon->GetStaticSamplers();
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
-		staticSmaplers.size, staticSmaplers.data(),
+		staticSmaplers.size(), staticSmaplers.data(),
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -314,6 +322,30 @@ void DX12Render::buildRootSignature()
 	));
 }
 
+void DX12Render::buildDescriptorHeaps()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
+	texHeapDesc.NumDescriptors = mAllTextures.size();
+	texHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	texHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	HR(mDXCon->mD3dDevice->CreateDescriptorHeap(&texHeapDesc, IID_PPV_ARGS(&mDXCon->mTextureHeap)));
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mDXCon->mTextureHeap->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC texSRVDesc = {};
+	texSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	texSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	texSRVDesc.Texture2D.MostDetailedMip = 0;
+	texSRVDesc.Texture2D.MipLevels = -1;
+
+	for (int i = 0; i < mAllTextures.size(); i++)
+	{
+		texSRVDesc.Format = mAllTextures[i].Resource->GetDesc().Format;
+		mDXCon->mD3dDevice->CreateShaderResourceView(mAllTextures[i].Resource.Get(), &texSRVDesc, hDescriptor);
+		hDescriptor.Offset(1, mDXCon->mCbvSrvUavDescriptorSize);
+	}
+}
+
 void DX12Render::buildShaders()
 {
 	mShaders["standardVS"] = CompileShader("Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
@@ -321,13 +353,14 @@ void DX12Render::buildShaders()
 
 	gInputLayout[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	gInputLayout[1] = { "NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 };
+	gInputLayout[2] = { "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,24,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 };
 }
 
 void DX12Render::buildPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { gInputLayout, 2 };
+	opaquePsoDesc.InputLayout = { gInputLayout, 3 };
 	opaquePsoDesc.pRootSignature = mRootSignature.Get();
 	opaquePsoDesc.VS =
 	{
@@ -380,10 +413,11 @@ void DX12Render::UpdateObjectPassCB(std::vector<RenderItem>& rItems,
 		if (rItems[i].NumFramesDirty > 0)
 		{
 			XMMATRIX world = XMLoadFloat4x4(&rItems[i].WorldPos);
+			XMMATRIX texTransform = XMLoadFloat4x4(&rItems[i].TextureTransform);
 
 			ObjectConstants objConst;
 			XMStoreFloat4x4(&objConst.World, XMMatrixTranspose(world));
-
+			XMStoreFloat4x4(&objConst.TextureTransform, XMMatrixTranspose(texTransform));
 			currentObjectCB->CopyData(rItems[i].ObjCBIndex, objConst);
 
 			rItems[i].NumFramesDirty--;
@@ -406,7 +440,7 @@ void DX12Render::UpdateMaterialCBs(std::vector<Material>& allMaterials,
 			matConst.DiffuseAlbedo = mat->DiffuseAlbedo;
 			matConst.FresnelR0 = mat->FresnelR0;
 			matConst.Roughness = mat->Roughness;
-
+			XMStoreFloat4x4(&matConst.MatTransform, XMMatrixTranspose(matTransform));
 			currMat->CopyData(mat->MatCBIndex, matConst);
 
 			mat->NumFramesDirty--;
@@ -429,11 +463,15 @@ void DX12Render::drawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vecto
 		cmdList->IASetIndexBuffer(&mAllGeometry[ri.GeoIndex].IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri.PrimitiveType);
 
+		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
+		tex.Offset(ri.texHeapIndex, mDXCon->mCbvSrvUavDescriptorSize);
+
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objConst->GetGPUVirtualAddress() + ri.ObjCBIndex * objCBByteSize;
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matConst->GetGPUVirtualAddress() + ri.MatCBIndex * matCBByteSize;
 
-		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
-		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+		cmdList->SetGraphicsRootDescriptorTable(0, tex);
+		cmdList->SetGraphicsRootConstantBufferView(1, objCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
 		cmdList->DrawIndexedInstanced(ri.IndexCount, 1, ri.StartIndexLocation, ri.baseVertexLocation, 0);
 	}
@@ -477,11 +515,12 @@ void DX12Render::UpdateMainPassCB(PassConstants& mainPassCB, UploadBuffer<PassCo
 	mainPassCB.DeltaTime = mTimer->mDeltaTime;
 	mainPassCB.TotalTime = mTimer->GetGameTime();
 	mainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-
-	XMVECTOR lightDir = -SphericalToCartesian(1.0f, mSunTheta, mSunPhi);
-
-	XMStoreFloat3(&mainPassCB.Lights[0].Direction, lightDir);
-	mainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
+	mainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+	mainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
+	mainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+	mainPassCB.Lights[1].Strength = { 0.5f, 0.5f, 0.5f };
+	mainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+	mainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
 
 	passCB->CopyData(0, mainPassCB);
 }
@@ -530,4 +569,27 @@ void DX12Render::OnKeyBoardInput()
 		mIsWireFrame = true;
 	else
 		mIsWireFrame = false;
+}
+
+void DX12Render::AnimateMaterials()
+{
+	auto waterMat = &mAllMaterials[mMaterialsIndex["water"]];
+
+	float& tu = waterMat->MatTransform(3, 0);
+	float& tv = waterMat->MatTransform(3, 1);
+
+	tu += 0.1f * mTimer->mDeltaTime;
+	tv += 0.02f * mTimer->mDeltaTime;
+
+	if (tu >= 1.0f)
+		tu -= 1.0f;
+
+	if (tv >= 1.0f)
+		tv -= 1.0f;
+
+	waterMat->MatTransform(3, 0) = tu;
+	waterMat->MatTransform(3, 1) = tv;
+
+	// Material has changed, so need to update cbuffer.
+	waterMat->NumFramesDirty = gNumFrameResources;
 }

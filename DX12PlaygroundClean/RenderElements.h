@@ -16,6 +16,7 @@ struct RenderItem
 	s32 NumFramesDirty = gNumFrameResources;
 	u32 ObjCBIndex = -1;
 	u32 MatCBIndex = -1;
+	u32 texHeapIndex = -1;
 	u32 GeoIndex = -1;
 
 	//IndexParameters

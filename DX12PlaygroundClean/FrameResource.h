@@ -5,6 +5,7 @@
 typedef struct ObjectConstants
 {
 	XMFLOAT4X4 World = Identity4x4();
+	XMFLOAT4X4 TextureTransform = Identity4x4();
 } ObjectConstants;
 
 struct PassConstants
@@ -46,7 +47,7 @@ public:
 	UploadBuffer<MaterialConstants>* MaterialCB = nullptr;
 	UploadBuffer<ObjectConstants>* ObjecCB = nullptr;
 
-	UploadBuffer<Vertex1>* WavesVB = nullptr;
+	UploadBuffer<Vertex>* WavesVB = nullptr;
 
 	u64 Fence = 0;
 

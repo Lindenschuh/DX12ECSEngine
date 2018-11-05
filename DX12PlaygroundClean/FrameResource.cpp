@@ -9,7 +9,7 @@ FrameResource::FrameResource(ID3D12Device * device, u32 passCount, u32 objectCou
 	MaterialCB = new UploadBuffer<MaterialConstants>(device, materialCount, true);
 	ObjecCB = new UploadBuffer<ObjectConstants>(device, objectCount, true);
 
-	WavesVB = new UploadBuffer<Vertex1>(device, waveVertCount, false);
+	WavesVB = new UploadBuffer<Vertex>(device, waveVertCount, false);
 }
 
 FrameResource::~FrameResource()

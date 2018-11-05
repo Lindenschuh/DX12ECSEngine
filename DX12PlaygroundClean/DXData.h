@@ -1,10 +1,11 @@
 #pragma once
 #include "Default.h"
 
-typedef struct Vertex1
+typedef struct Vertex
 {
 	XMFLOAT3 Pos;
 	XMFLOAT3 Normal;
+	XMFLOAT2 TexC;
 } Vertex1;
 
 typedef struct Vertex2

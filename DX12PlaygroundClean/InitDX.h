@@ -49,7 +49,7 @@ private:
 
 	ComPtr<ID3D12RootSignature> mRootSignature;
 
-	D3D12_INPUT_ELEMENT_DESC gInputLayout[2];
+	D3D12_INPUT_ELEMENT_DESC gInputLayout[3];
 
 	u32 mPassCbvOffset = 0;
 
@@ -84,6 +84,7 @@ private:
 	void processGlobalEvents();
 	void calculateFrameStats();
 	void buildRootSignature();
+	void buildDescriptorHeaps();
 	void buildShaders();
 	void buildPSO();
 	void buildFrameResources();
@@ -99,4 +100,5 @@ private:
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
 	void OnKeyBoardInput();
+	void AnimateMaterials();
 };
