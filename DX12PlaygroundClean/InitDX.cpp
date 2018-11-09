@@ -2,55 +2,16 @@
 #include "InitDX.h"
 #include "Ext/imgui_impl_win32.h"
 #include "Ext/imgui_impl_dx12.h"
-RenderItem* gWavesRItem = nullptr;
 
-static void UpdateWaves(GameTimer* mTimer, UploadBuffer<Vertex>* currWavesVB, DX12Render& render)
-{
-	// Every quarter second, generate a random wave.
-	static float t_base = 0.0f;
-	if ((mTimer->GetGameTime() - t_base) >= 0.25f)
-	{
-		t_base += 0.25f;
-
-		int i = Rand(4, gWaves->RowCount() - 5);
-		int j = Rand(4, gWaves->ColumnCount() - 5);
-
-		float r = RandF(0.2f, 0.5f);
-
-		gWaves->Disturb(i, j, r);
-	}
-
-	// Update the wave simulation.
-	gWaves->Update(mTimer->mDeltaTime);
-
-	// Update the wave vertex buffer with the new solution.
-	for (int i = 0; i < gWaves->VertexCount(); ++i)
-	{
-		Vertex v;
-
-		v.Pos = gWaves->mCurrSolution[i];
-		v.Normal = gWaves->mNormals[i];
-
-		v.TexC.x = 0.5f + v.Pos.x / gWaves->Width();
-		v.TexC.y = 0.5f - v.Pos.z / gWaves->Depth();
-
-		currWavesVB->CopyData(i, v);
-	}
-
-	// Set the dynamic VB of the wave render item to the current frame VB.
-	render.GetGeometry("waterGeo")->VertexBufferGPU = currWavesVB->Resource();
-}
-
-DX12Render::DX12Render(DX12Context* context)
+DX12Render::DX12Render(DX12Context* context, Waves* wave)
 {
 	mTimer = new GameTimer();
 	mDXCon = context;
-
+	gWaves = wave;
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui::StyleColorsDark();
-
 	ImGui_ImplWin32_Init(mDXCon->Window->hwnd);
 	ImGui_ImplDX12_Init(mDXCon->mD3dDevice.Get(), gNumFrameResources,
 		mDXCon->mBackBufferFormat, mDXCon->mSRVHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -129,13 +90,6 @@ void DX12Render::Draw()
 
 void DX12Render::Update()
 {
-	OnKeyBoardInput();
-	UpdateCamera();
-
-	bool show_demo_window = true;
-	bool show_another_window = false;
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
 	mCurrentFrameResourceIndex = (mCurrentFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrentFrameResource = &mFrameResources[mCurrentFrameResourceIndex];
 
@@ -153,10 +107,7 @@ void DX12Render::Update()
 	}
 
 	UpdateMaterialCBs(mAllMaterials, mCurrentFrameResource->MaterialCB);
-	UpdateMainPassCB(mMainPassCB, mCurrentFrameResource->PassCB);
-
-	UpdateWaves(mTimer, mCurrentFrameResource->WavesVB, *this);
-	AnimateMaterials();
+	UpdateMainPassCB(mMainPassCB, mCurrentFrameResource->PassCB, &mMainCam, mDXCon, mTimer, mProj);
 }
 
 void DX12Render::AddMaterial(std::string name, Material m)
@@ -181,6 +132,12 @@ void DX12Render::AddRenderItem(std::string name, RenderItem r, RenderLayer rl)
 {
 	mRItems[rl].push_back(r);
 	mRenderItemPair[name] = std::pair<RenderLayer, u32>(rl, mRItems[rl].size() - 1);
+}
+void DX12Render::
+SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view)
+{
+	mMainCam.EyePos = position;
+	mMainCam.View = view;
 }
 MeshGeometry* DX12Render::GetGeometry(std::string name)
 {
@@ -216,6 +173,7 @@ void DX12Render::FinishSetup()
 
 	XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
 	XMStoreFloat4x4(&mProj, p);
+	Update();
 }
 
 void DX12Render::processGlobalEvents()
@@ -227,21 +185,6 @@ void DX12Render::processGlobalEvents()
 		gGlobalEvents.isResized = false;
 		XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
 		XMStoreFloat4x4(&mProj, p);
-	}
-	else if (gGlobalEvents.IsMouseDown)
-	{
-		OnMouseDown(gGlobalEvents.MDWP, gGlobalEvents.MDX, gGlobalEvents.MDY);
-		gGlobalEvents.IsMouseDown = false;
-	}
-	else if (gGlobalEvents.IsMouseUP)
-	{
-		OnMouseUp(gGlobalEvents.MUWP, gGlobalEvents.MUX, gGlobalEvents.MUY);
-		gGlobalEvents.IsMouseUP = false;
-	}
-	else if (gGlobalEvents.isMouseMoving)
-	{
-		OnMouseMove(gGlobalEvents.MMWP, gGlobalEvents.MMX, gGlobalEvents.MMY);
-		gGlobalEvents.isMouseMoving = false;
 	}
 }
 
@@ -405,48 +348,6 @@ void DX12Render::buildFrameResources()
 	}
 }
 
-void DX12Render::UpdateObjectPassCB(std::vector<RenderItem>& rItems,
-	UploadBuffer<ObjectConstants>* currentObjectCB)
-{
-	for (int i = 0; i < rItems.size(); i++)
-	{
-		if (rItems[i].NumFramesDirty > 0)
-		{
-			XMMATRIX world = XMLoadFloat4x4(&rItems[i].WorldPos);
-			XMMATRIX texTransform = XMLoadFloat4x4(&rItems[i].TextureTransform);
-
-			ObjectConstants objConst;
-			XMStoreFloat4x4(&objConst.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConst.TextureTransform, XMMatrixTranspose(texTransform));
-			currentObjectCB->CopyData(rItems[i].ObjCBIndex, objConst);
-
-			rItems[i].NumFramesDirty--;
-		}
-	}
-}
-
-void DX12Render::UpdateMaterialCBs(std::vector<Material>& allMaterials,
-	UploadBuffer<MaterialConstants>* currMat)
-{
-	for (int i = 0; i < allMaterials.size(); i++)
-	{
-		Material* mat = &allMaterials[i];
-
-		if (mat->NumFramesDirty > 0)
-		{
-			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
-
-			MaterialConstants matConst;
-			matConst.DiffuseAlbedo = mat->DiffuseAlbedo;
-			matConst.FresnelR0 = mat->FresnelR0;
-			matConst.Roughness = mat->Roughness;
-			XMStoreFloat4x4(&matConst.MatTransform, XMMatrixTranspose(matTransform));
-			currMat->CopyData(mat->MatCBIndex, matConst);
-
-			mat->NumFramesDirty--;
-		}
-	}
-}
 void DX12Render::drawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vector<RenderItem>& rItems)
 {
 	u32 objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectConstants));
@@ -475,121 +376,4 @@ void DX12Render::drawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vecto
 
 		cmdList->DrawIndexedInstanced(ri.IndexCount, 1, ri.StartIndexLocation, ri.baseVertexLocation, 0);
 	}
-}
-
-void DX12Render::UpdateCamera()
-{
-	mEyePos.x = mRadius * sinf(mPhi) * cosf(mTheta);
-	mEyePos.z = mRadius * sinf(mPhi) * sinf(mTheta);
-	mEyePos.y = mRadius * cosf(mPhi);
-
-	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&mView, view);
-}
-
-void DX12Render::UpdateMainPassCB(PassConstants& mainPassCB, UploadBuffer<PassConstants>* passCB)
-{
-	XMMATRIX view = XMLoadFloat4x4(&mView);
-	XMMATRIX proj = XMLoadFloat4x4(&mProj);
-
-	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
-	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
-	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
-	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
-
-	XMStoreFloat4x4(&mainPassCB.View, XMMatrixTranspose(view));
-	XMStoreFloat4x4(&mainPassCB.InvView, XMMatrixTranspose(invView));
-	XMStoreFloat4x4(&mainPassCB.Proj, XMMatrixTranspose(proj));
-	XMStoreFloat4x4(&mainPassCB.InvProj, XMMatrixTranspose(invProj));
-	XMStoreFloat4x4(&mainPassCB.ViewProj, XMMatrixTranspose(viewProj));
-	XMStoreFloat4x4(&mainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-	mainPassCB.EyePosW = mEyePos;
-	mainPassCB.RenderTargetSize = XMFLOAT2(mDXCon->Window->width, mDXCon->Window->height);
-	mainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mDXCon->Window->width, 1.0f / mDXCon->Window->height);
-	mainPassCB.NearZ = 1.0f;
-	mainPassCB.FarZ = 1000.0f;
-	mainPassCB.DeltaTime = mTimer->mDeltaTime;
-	mainPassCB.TotalTime = mTimer->GetGameTime();
-	mainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	mainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
-	mainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mainPassCB.Lights[1].Strength = { 0.5f, 0.5f, 0.5f };
-	mainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
-
-	passCB->CopyData(0, mainPassCB);
-}
-
-void DX12Render::OnMouseDown(WPARAM btnState, int x, int y)
-{
-	mLastMousePosition.x = x;
-	mLastMousePosition.y = y;
-
-	SetCapture(mDXCon->Window->hwnd);
-}
-
-void DX12Render::OnMouseUp(WPARAM btnState, int x, int y)
-{
-	ReleaseCapture();
-}
-
-void DX12Render::OnMouseMove(WPARAM btnState, int x, int y)
-{
-	if ((btnState & MK_LBUTTON) != 0)
-	{
-		float dx = XMConvertToRadians(0.25f * (float)(x - mLastMousePosition.x));
-		float dy = XMConvertToRadians(0.25f * (float)(y - mLastMousePosition.y));
-
-		mTheta += dx;
-		mPhi += dy;
-
-		mPhi = Clamp(mPhi, 0.1f, XM_PI - 0.1f);
-	}
-	else if ((btnState & MK_RBUTTON) != 0)
-	{
-		float dx = 0.05f * (float)(x - mLastMousePosition.x);
-		float dy = 0.05f * (float)(y - mLastMousePosition.y);
-
-		mRadius += dx - dy;
-		mRadius = Clamp(mRadius, 5.0f, 150.0f);
-	}
-
-	mLastMousePosition.x = x;
-	mLastMousePosition.y = y;
-}
-
-void DX12Render::OnKeyBoardInput()
-{
-	if (GetAsyncKeyState('1') & 0x8000)
-		mIsWireFrame = true;
-	else
-		mIsWireFrame = false;
-}
-
-void DX12Render::AnimateMaterials()
-{
-	auto waterMat = &mAllMaterials[mMaterialsIndex["water"]];
-
-	float& tu = waterMat->MatTransform(3, 0);
-	float& tv = waterMat->MatTransform(3, 1);
-
-	tu += 0.1f * mTimer->mDeltaTime;
-	tv += 0.02f * mTimer->mDeltaTime;
-
-	if (tu >= 1.0f)
-		tu -= 1.0f;
-
-	if (tv >= 1.0f)
-		tv -= 1.0f;
-
-	waterMat->MatTransform(3, 0) = tu;
-	waterMat->MatTransform(3, 1) = tv;
-
-	// Material has changed, so need to update cbuffer.
-	waterMat->NumFramesDirty = gNumFrameResources;
 }

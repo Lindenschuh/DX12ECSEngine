@@ -14,18 +14,6 @@ struct GlobalEvent
 	bool isResized = false;
 	u32 ResizeWidth = 0;
 	u32 ResizeHeight = 0;
-	bool IsMouseDown = false;
-	WPARAM MDWP = 0;
-	u32 MDX = 0;
-	u32 MDY = 0;
-	bool IsMouseUP = false;
-	WPARAM MUWP = 0;
-	u32 MUX = 0;
-	u32 MUY = 0;
-	bool isMouseMoving = false;
-	WPARAM MMWP = 0;
-	u32 MMX = 0;
-	u32 MMY = 0;
 };
 
 extern GlobalEvent gGlobalEvents;
@@ -45,7 +33,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		gGlobalEvents.ResizeWidth = LOWORD(lParam);
 		gGlobalEvents.ResizeHeight = HIWORD(lParam);
 		gGlobalEvents.isResized = true;
-
 		break;
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
@@ -55,30 +42,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		PostQuitMessage(0);
 		break;
 
-	case WM_LBUTTONDOWN:
-	case WM_MBUTTONDOWN:
-	case WM_RBUTTONDOWN:
-		gGlobalEvents.IsMouseDown = true;
-		gGlobalEvents.MDWP = wParam;
-		gGlobalEvents.MDX = GET_X_LPARAM(lParam);
-		gGlobalEvents.MDY = GET_Y_LPARAM(lParam);
-		return 0;
-
-	case WM_LBUTTONUP:
-	case WM_MBUTTONUP:
-	case WM_RBUTTONUP:
-		gGlobalEvents.IsMouseUP = true;
-		gGlobalEvents.MUWP = wParam;
-		gGlobalEvents.MUX = GET_X_LPARAM(lParam);
-		gGlobalEvents.MUY = GET_Y_LPARAM(lParam);
-		return 0;
-
-	case WM_MOUSEMOVE:
-		gGlobalEvents.isMouseMoving = true;
-		gGlobalEvents.MMWP = wParam;
-		gGlobalEvents.MMX = GET_X_LPARAM(lParam);
-		gGlobalEvents.MMY = GET_Y_LPARAM(lParam);
-		return 0;
 	default:
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 		break;

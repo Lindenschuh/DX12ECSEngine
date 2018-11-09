@@ -1,5 +1,6 @@
 #include "InitDX.h"
-#include "Ext/DDSTextureLoader.h"
+
+#include "ECS/RenderSystem.h"
 
 static float GetHillsHeight(float x, float z)
 {
@@ -20,108 +21,36 @@ static XMFLOAT3 GetHillsNormal(float x, float z)
 	return n;
 }
 
-static void loadTextures(DX12Render& rd, DX12Context& dx)
+static void loadTextures(DX12Render* rd, DX12Context* dx)
 {
-	Texture grassTex;
-	grassTex.Filename = L"Textures/grass.dds";
-	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
-		dx.mCmdList.Get(), grassTex.Filename.c_str(),
-		grassTex.Resource, grassTex.UploadHeap));
-
-	Texture waterTex;
-	waterTex.Filename = L"Textures/water1.dds";
-	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
-		dx.mCmdList.Get(), waterTex.Filename.c_str(),
-		waterTex.Resource, waterTex.UploadHeap));
-
-	Texture fenceTex;
-	fenceTex.Filename = L"Textures/WoodCrate01.dds";
-	HR(CreateDDSTextureFromFile12(dx.mD3dDevice.Get(),
-		dx.mCmdList.Get(), fenceTex.Filename.c_str(),
-		fenceTex.Resource, fenceTex.UploadHeap));
-
-	rd.AddTexture("grassTex", grassTex);
-	rd.AddTexture("waterTex", waterTex);
-	rd.AddTexture("fenceTex", fenceTex);
+	LoadTextureFromFile("grassTex", L"Textures/grass.dds", dx, rd);
+	LoadTextureFromFile("waterTex", L"Textures/water1.dds", dx, rd);
+	LoadTextureFromFile("fenceTex", L"Textures/WoodCrate01.dds", dx, rd);
 }
 
-static void buildRenderItems(DX12Render& rd)
+static void buildRenderItems(DX12Render* rd)
 {
-	MeshGeometry* md = rd.GetGeometry("waterGeo");
-	RenderItem wavesRitem;
-	wavesRitem.WorldPos = Identity4x4();
-	wavesRitem.ObjCBIndex = 0;
-	wavesRitem.MatCBIndex = rd.GetMaterial("water")->MatCBIndex;
-	wavesRitem.texHeapIndex = rd.GetMaterial("water")->DiffuseSrvHeapIndex;
-	wavesRitem.GeoIndex = md->GeometryIndex;
-	wavesRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	wavesRitem.IndexCount = md->Submeshes["grid"].IndexCount;
-	wavesRitem.StartIndexLocation = md->Submeshes["grid"].StartIndexLocation;
-	wavesRitem.baseVertexLocation = md->Submeshes["grid"].BaseVertexLocation;
+	RenderItemDesc desc;
+	desc.GeometryName = "waterGeo";
+	desc.MaterialName = "water";
+	desc.SubMeshName = "grid";
+	desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	desc.Layer = RenderLayer::Opaque;
+	CreateRenderItem(&desc, rd, 0, &gObjects);
 
-	rd.AddRenderItem("wavesRitem", wavesRitem, RenderLayer::Opaque);
-	gWavesRItem = rd.GetRenderItem("wavesRitem");
+	desc.GeometryName = "landGeo";
+	desc.MaterialName = "grass";
+	CreateRenderItem(&desc, rd, 1, &gObjects);
 
-	md = rd.GetGeometry("landGeo");
-	RenderItem gridRitem;
-	gridRitem.WorldPos = Identity4x4();
-	gridRitem.ObjCBIndex = 1;
-	gridRitem.MatCBIndex = rd.GetMaterial("grass")->MatCBIndex;
-	gridRitem.texHeapIndex = rd.GetMaterial("grass")->DiffuseSrvHeapIndex;
-	gridRitem.GeoIndex = md->GeometryIndex;
-	gridRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	gridRitem.IndexCount = md->Submeshes["grid"].IndexCount;
-	gridRitem.StartIndexLocation = md->Submeshes["grid"].StartIndexLocation;
-	gridRitem.baseVertexLocation = md->Submeshes["grid"].BaseVertexLocation;
+	desc.GeometryName = "boxGeo";
+	desc.MaterialName = "wirefence";
+	desc.SubMeshName = "box";
+	CreateRenderItem(&desc, rd, 2, &gObjects);
 
-	rd.AddRenderItem("gridItem", gridRitem, RenderLayer::Opaque);
-
-	md = rd.GetGeometry("boxGeo");
-	RenderItem boxRitem;
-	XMStoreFloat4x4(&boxRitem.WorldPos, XMMatrixTranslation(3.0f, 2.0f, -9.0f));
-	boxRitem.ObjCBIndex = 2;
-	boxRitem.MatCBIndex = rd.GetMaterial("wirefence")->MatCBIndex;
-	boxRitem.texHeapIndex = rd.GetMaterial("wirefence")->DiffuseSrvHeapIndex;
-	boxRitem.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	boxRitem.GeoIndex = md->GeometryIndex;
-	boxRitem.IndexCount = md->Submeshes["box"].IndexCount;
-	boxRitem.StartIndexLocation = md->Submeshes["box"].StartIndexLocation;
-	boxRitem.baseVertexLocation = md->Submeshes["box"].BaseVertexLocation;
-
-	rd.AddRenderItem("boxItem", boxRitem, RenderLayer::Opaque);
+	//XMStoreFloat4x4(&boxRitem.WorldPos, XMMatrixTranslation(3.0f, 2.0f, -9.0f));
 }
 
-struct GeoBuildInfo
-{
-	Vertex* verts;
-	u16* indicies;
-	u32 vertCount;
-	u32 indiceCount;
-};
-
-static void AllocateGeometry(GeoBuildInfo* geoInfo, MeshGeometry* meshGeo, DX12Context* dxC)
-{
-	const u32 vbByteSize = geoInfo->vertCount * sizeof(Vertex);
-	const u32 ibByteSize = geoInfo->indiceCount * sizeof(u16);
-
-	HR(D3DCreateBlob(vbByteSize, &meshGeo->VertexBufferCPU));
-	CopyMemory(meshGeo->VertexBufferCPU->GetBufferPointer(), geoInfo->verts, vbByteSize);
-
-	HR(D3DCreateBlob(ibByteSize, &meshGeo->IndexBufferCPU));
-	CopyMemory(meshGeo->IndexBufferCPU->GetBufferPointer(), geoInfo->indicies, ibByteSize);
-
-	meshGeo->VertexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
-		geoInfo->verts, vbByteSize, meshGeo->VertexBufferUploader);
-
-	meshGeo->IndexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(), dxC->mCmdList.Get(),
-		geoInfo->indicies, ibByteSize, meshGeo->IndexBufferUploader);
-
-	meshGeo->VertexByteStride = sizeof(Vertex);
-	meshGeo->VertexBufferByteSize = vbByteSize;
-	meshGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
-	meshGeo->IndexBufferByteSize = ibByteSize;
-}
-static void buildBoxGeo(DX12Render& rd, DX12Context* dxC)
+static void buildBoxGeo(DX12Render* rd, DX12Context* dxC)
 {
 	GeometryGenerator geoGen;
 	MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
@@ -135,20 +64,22 @@ static void buildBoxGeo(DX12Render& rd, DX12Context* dxC)
 		vertices[i].TexC = box.Vertices[i].TexCoord;
 	}
 
-	MeshGeometry geo;
-	GeoBuildInfo gInfo = { vertices.data(),box.Indicies.data(),vertices.size(),box.Indicies.size() };
-	AllocateGeometry(&gInfo, &geo, dxC);
+	Submesh sm = { box.Indicies.size(),0,0 };
+	std::string subMeshName = "box";
+	GeoBuildInfo gInfo;
+	gInfo.Name = "boxGeo";
+	gInfo.verts = vertices.data();
+	gInfo.vertCount = vertices.size();
+	gInfo.indicies = box.Indicies.data();
+	gInfo.indiceCount = box.Indicies.size();
+	gInfo.SubmeshNames = &subMeshName;
+	gInfo.submeshs = &sm;
+	gInfo.submeshCount = 1;
 
-	Submesh submesh;
-	submesh.IndexCount = box.Indicies.size();
-	submesh.StartIndexLocation = 0;
-	submesh.BaseVertexLocation = 0;
-
-	geo.Submeshes["box"] = submesh;
-
-	rd.AddGeometry("boxGeo", geo);
+	CreateGeometry(&gInfo, dxC, rd);
 }
-static void buildLandGeometry(DX12Render& rd, DX12Context* dxC)
+
+static void buildLandGeometry(DX12Render* rd, DX12Context* dxC)
 {
 	GeometryGenerator geoGen;
 	MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
@@ -166,20 +97,21 @@ static void buildLandGeometry(DX12Render& rd, DX12Context* dxC)
 
 	MeshGeometry geo;
 
-	GeoBuildInfo gInfo = { vertices.data(),grid.Indicies.data(),vertices.size(),grid.Indicies.size() };
-	AllocateGeometry(&gInfo, &geo, dxC);
-
-	Submesh submesh;
-	submesh.IndexCount = grid.Indicies.size();
-	submesh.StartIndexLocation = 0;
-	submesh.BaseVertexLocation = 0;
-
-	geo.Submeshes["grid"] = submesh;
-
-	rd.AddGeometry("landGeo", geo);
+	Submesh sm = { grid.Indicies.size(),0,0 };
+	std::string subMeshName = "grid";
+	GeoBuildInfo gInfo;
+	gInfo.Name = "landGeo";
+	gInfo.verts = vertices.data();
+	gInfo.vertCount = vertices.size();
+	gInfo.indicies = grid.Indicies.data();
+	gInfo.indiceCount = grid.Indicies.size();
+	gInfo.SubmeshNames = &subMeshName;
+	gInfo.submeshCount = 1;
+	gInfo.submeshs = &sm;
+	CreateGeometry(&gInfo, dxC, rd);
 }
 
-static void buildMaterials(DX12Render& rd)
+static void buildMaterials(DX12Render* rd)
 {
 	Material grass;
 	//"grass";
@@ -204,12 +136,12 @@ static void buildMaterials(DX12Render& rd)
 	wirefence.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	wirefence.Roughness = 0.25f;
 
-	rd.AddMaterial("grass", grass);
-	rd.AddMaterial("water", water);
-	rd.AddMaterial("wirefence", wirefence);
+	rd->AddMaterial("grass", grass);
+	rd->AddMaterial("water", water);
+	rd->AddMaterial("wirefence", wirefence);
 }
 
-static void buildWavesGeometryBuffers(DX12Render& rd, DX12Context* dxC)
+static void buildWavesGeometryBuffers(DX12Render* rd, DX12Context* dxC, Waves* gWaves)
 {
 	u32 indicesCount = 3 * gWaves->TriangleCount();
 	std::vector<u16> indices(indicesCount);
@@ -236,100 +168,71 @@ static void buildWavesGeometryBuffers(DX12Render& rd, DX12Context* dxC)
 	u32 vbByteSize = gWaves->VertexCount() * sizeof(Vertex);
 	u32 ibByteSize = indicesCount * sizeof(u16);
 
-	MeshGeometry geo;
-	/*geo->Name = "waterGeo";*/
-
-	// Set dynamically.
-	geo.VertexBufferCPU = nullptr;
-	geo.VertexBufferGPU = nullptr;
-
-	HR(D3DCreateBlob(ibByteSize, &geo.IndexBufferCPU));
-	CopyMemory(geo.IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-	geo.IndexBufferGPU = CreateDefaultBuffer(dxC->mD3dDevice.Get(),
-		dxC->mCmdList.Get(), indices.data(), ibByteSize, geo.IndexBufferUploader);
-
-	geo.VertexByteStride = sizeof(Vertex);
-	geo.VertexBufferByteSize = vbByteSize;
-	geo.IndexFormat = DXGI_FORMAT_R16_UINT;
-	geo.IndexBufferByteSize = ibByteSize;
-
 	Submesh submesh;
 	submesh.IndexCount = indicesCount;
 	submesh.StartIndexLocation = 0;
 	submesh.BaseVertexLocation = 0;
+	std::string submeshName = "grid";
+	DynamicGeoBuildInfo info;
 
-	geo.Submeshes["grid"] = submesh;
+	info.Name = "waterGeo";
+	info.SubmeshNames = &submeshName;
+	info.submeshs = &submesh;
+	info.verts = nullptr;
+	info.vertCount = 0;
 
-	rd.AddGeometry("waterGeo", geo);
+	info.indicies = indices.data();
+	info.indiceCount = indices.size();
+	info.indexByteSize = ibByteSize;
+	info.vertexByteSize = vbByteSize;
+	info.submeshCount = 1;
+
+	CreateDynamicGeometry(&info, dxC, rd);
+}
+
+void setUpECS()
+{
+	gObjects.addEntity("water");
+	gObjects.addEntity("Land");
+	gObjects.addEntity("box");
+	gObjects.addEntity("camera");
 }
 
 int main()
 {
-	bool show_demo_window = true;
-	bool show_another_window = false;
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	Waves wave(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
 
 	DX12Context* dxC = new DX12Context(1280, 720, "Winnidow");
 
-	DX12Render* render = new DX12Render(dxC);
+	DX12Render* render = new DX12Render(dxC, &wave);
 
-	buildLandGeometry(*render, dxC);
-	buildWavesGeometryBuffers(*render, dxC);
-	buildBoxGeo(*render, dxC);
-	loadTextures(*render, *dxC);
-	buildMaterials(*render);
-	buildRenderItems(*render);
+	buildLandGeometry(render, dxC);
+	buildWavesGeometryBuffers(render, dxC, &wave);
+	buildBoxGeo(render, dxC);
+	loadTextures(render, dxC);
+	buildMaterials(render);
+	setUpECS();
+	buildRenderItems(render);
+
 	render->FinishSetup();
-	Material* grass = render->GetMaterial("grass");
-	XMFLOAT4 grassColor = grass->DiffuseAlbedo;
+
+	GuiSystem gui;
+	RenderSystem rSys(&gObjects, render);
+	ColorChangerSystem color(&rSys, &gObjects);
+	CameraSystem cs(&gObjects, render);
+	WaterAnimationSystem WaterAnimation(&gObjects, render->gWaves, &rSys);
+	color.registerItem(0);
+	color.registerItem(2);
+	cs.AddObjectToSystem(3);
+	WaterAnimation.AddToSystem(0);
+
 	while (render->isWindowActive())
 	{
-		ImGui_ImplWin32_NewFrame();
-		ImGui_ImplDX12_NewFrame();
-		ImGui::NewFrame();
-
-		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-		{
-			static float f = 0.0f;
-			static int counter = 0;
-
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
-			ImGui::ColorPicker4("Pick Color", &grassColor.x);
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
-		}
-
-		// 3. Show another simple window.
-		if (show_another_window)
-		{
-			ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				show_another_window = false;
-			ImGui::End();
-		}
-
-		grass->DiffuseAlbedo = grassColor;
-		grass->NumFramesDirty = gNumFrameResources;
-		render->Update();
-		render->Draw();
+		gui.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		color.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		WaterAnimation.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		cs.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		rSys.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 	}
 
 	return 0;

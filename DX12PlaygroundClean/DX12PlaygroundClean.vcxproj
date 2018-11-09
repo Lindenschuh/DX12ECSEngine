@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClCompile Include="DX12Context.cpp" />
     <ClCompile Include="DXHelpers.cpp" />
+    <ClCompile Include="ECS\RenderSystem.cpp" />
     <ClCompile Include="Ext\DDSTextureLoader.cpp" />
     <ClCompile Include="Ext\imgui_impl_dx12.cpp" />
     <ClCompile Include="Ext\imgui_impl_win32.cpp" />
@@ -133,14 +134,18 @@
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="InitDX.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Default.h" />
     <ClInclude Include="DX12Context.h" />
     <ClInclude Include="DXHelpers.h" />
     <ClInclude Include="DynamicArray.h" />
+    <ClInclude Include="ECS\EntitySystem.h" />
+    <ClInclude Include="ECS\RenderSystem.h" />
     <ClInclude Include="Ext\d3dx12.h" />
     <ClInclude Include="Ext\DDSTextureLoader.h" />
     <ClInclude Include="Ext\imgui_impl_dx12.h" />
@@ -149,7 +154,7 @@
     <ClInclude Include="DXData.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="InitDX.h" />
-    <ClInclude Include="RenderElements.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="SimpleHashTable.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Waves.h" />

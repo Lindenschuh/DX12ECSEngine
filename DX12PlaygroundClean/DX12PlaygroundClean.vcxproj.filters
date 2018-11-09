@@ -48,6 +48,12 @@
     <ClCompile Include="Ext\DDSTextureLoader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS\RenderSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ext\d3dx12.h">
@@ -83,9 +89,6 @@
     <ClInclude Include="DXData.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="RenderElements.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="DX12Context.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -96,6 +99,18 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="Ext\DDSTextureLoader.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\EntitySystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\RenderSystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

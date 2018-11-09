@@ -2,39 +2,6 @@
 #include "Default.h"
 #include "DXHelpers.h"
 #include "DXData.h"
-typedef struct ObjectConstants
-{
-	XMFLOAT4X4 World = Identity4x4();
-	XMFLOAT4X4 TextureTransform = Identity4x4();
-} ObjectConstants;
-
-struct PassConstants
-{
-	XMFLOAT4X4 View = Identity4x4();
-	XMFLOAT4X4 InvView = Identity4x4();
-	XMFLOAT4X4 Proj = Identity4x4();
-	XMFLOAT4X4 InvProj = Identity4x4();
-	XMFLOAT4X4 ViewProj = Identity4x4();
-	XMFLOAT4X4 InvViewProj = Identity4x4();
-	XMFLOAT3 EyePosW = { 0.0f, 0.0f, 0.0f };
-	float cbPerObjectPad1 = 0.0f;
-	XMFLOAT2 RenderTargetSize = { 0.0f ,0.0f };
-	XMFLOAT2 InvRenderTargetSize = { 0.0f,0.0f };
-	float NearZ = 0.0f;
-	float FarZ = 0.0f;
-	float TotalTime = 0.0f;
-	float DeltaTime = 0.0f;
-
-	XMFLOAT4 AmbientLight = { 0.0f,0.0f,0.0f,1.0f };
-
-	Light Lights[MaxLights];
-};
-
-struct VertexSimple
-{
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
-};
 
 class FrameResource
 {
