@@ -34,18 +34,17 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 		if ((eManager->mFlags[eId] & eManager->FlagRenderData) && (eManager->mFlags[eId] & eManager->FlagPosition))
 		{
 			RenderComponent& rComp = eManager->mRenderData[eId];
+			PositionComponent& pComp = eManager->mPositions[eId];
 			RenderItem&  rItem = renderer->mRItems[rComp.layer][rComp.renderItemId];
-			rItem.WorldPos = rComp.worldPos;
+
+			XMMATRIX Mat = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z));
+			XMStoreFloat4x4(&rItem.WorldPos, Mat);
+
 			rItem.GeoIndex = rComp.GeoIndex;
 			rItem.MatCBIndex = rComp.MatCBIndex;
 			rItem.PrimitiveType = rComp.PrimitiveType;
 			rItem.TextureTransform = rComp.textureTransform;
 			rItem.texHeapIndex = rComp.texHeapIndex;
-
-			if (rComp.IsDirty)
-			{
-				rItem.NumFramesDirty = gNumFrameResources;
-			}
 		}
 	}
 
@@ -53,29 +52,30 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 	renderer->Draw();
 }
 
-void GuiSystem::UpdateSystem(float time, float deltaTime)
+void GuiComponent::UpdateSystem(float time, float deltaTime)
 {
 	ImGui_ImplWin32_NewFrame();
 	ImGui_ImplDX12_NewFrame();
 	ImGui::NewFrame();
 }
 
-ColorChangerSystem::ColorChangerSystem(RenderSystem* system, EntityManger* manager)
+DebugWindowSystem::DebugWindowSystem(RenderSystem* system, EntityManger* manager)
 {
 	rSystem = system;
 	eManager = manager;
 }
-void ColorChangerSystem::registerItem(EntityID eId)
+void DebugWindowSystem::registerItem(EntityID eId)
 {
 	changeableObjects.emplace_back(eId);
 }
-void ColorChangerSystem::UpdateSystem(float time, float deltaTime)
+void DebugWindowSystem::UpdateSystem(float time, float deltaTime)
 {
 	//ui
 	{
 		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)     // Edit bools storing our window open/close state
+		ImGui::Text("Number Of Entities: %i", eManager->mNames.size()); // Display some text (you can use a format strings too)     // Edit bools storing our window open/close state
+
 		ImGui::ColorPicker4("Pick Color", &color.x);         // Edit 1 float using a slider from 0.0f to 1.0f
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -218,5 +218,111 @@ void WaterAnimationSystem::UpdateSystem(float time, float deltaTime)
 		matMat(3, 0) = tu;
 		matMat(3, 1) = tv;
 		mat->setTransformMat(matMat);
+	}
+}
+
+ControllSystem::ControllSystem(EntityManger * eManager)
+{
+	mEManager = eManager;
+}
+
+void ControllSystem::AddToSystem(EntityID id)
+{
+	entities.emplace_back(id);
+}
+
+void ControllSystem::UpdateSystem(float time, float deltaTime)
+{
+	for (int i = 0; i < entities.size(); i++)
+	{
+		EntityID eId = entities[i];
+		PositionComponent& pos = mEManager->mPositions[eId];
+
+		if (ImGui::IsKeyDown('W'))
+		{
+			pos.Position.x += speed * deltaTime;
+		}
+
+		if (ImGui::IsKeyDown('S'))
+		{
+			pos.Position.x -= speed * deltaTime;
+		}
+
+		if (ImGui::IsKeyDown('A'))
+		{
+			pos.Position.z += speed * deltaTime;
+		}
+
+		if (ImGui::IsKeyDown('D'))
+		{
+			pos.Position.z -= speed * deltaTime;
+		}
+
+		if (ImGui::IsKeyDown('E'))
+		{
+			pos.Position.y += speed * deltaTime;
+		}
+
+		if (ImGui::IsKeyDown('Q'))
+		{
+			pos.Position.y -= speed * deltaTime;
+		}
+	}
+}
+
+GlobalMovement::GlobalMovement(EntityManger * eManager)
+{
+	mEManager = eManager;
+}
+
+void GlobalMovement::AddToSystem(EntityID eId)
+{
+	entities.emplace_back(eId);
+}
+
+void GlobalMovement::UpdateSystem(float time, float deltaTime)
+{
+	for (int i = 0; i < entities.size(); i++)
+	{
+		EntityID eId = entities[i];
+
+		XMFLOAT3& pos = mEManager->mPositions[eId].Position;
+		XMFLOAT3& velo = mEManager->mVelocitys[eId].Velocity;
+		pos.x += velo.x * deltaTime;
+		pos.y += velo.y * deltaTime;
+		pos.z += velo.z * deltaTime;
+
+		if (pos.x < (-bounds.x))
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.x = -bounds.x;
+		}
+		if (pos.x > bounds.x)
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.x = bounds.x;
+		}
+
+		if (pos.y < (-bounds.y))
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.y = -bounds.y;
+		}
+		if (pos.y > bounds.y)
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.y = bounds.y;
+		}
+
+		if (pos.z < (-bounds.z))
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.z = -bounds.z;
+		}
+		if (pos.z > bounds.z)
+		{
+			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
+			pos.z = bounds.z;
+		}
 	}
 }

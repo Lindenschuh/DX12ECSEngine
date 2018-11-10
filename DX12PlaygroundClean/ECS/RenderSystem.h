@@ -17,21 +17,21 @@ public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
-class GuiSystem
+class GuiComponent
 {
 public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
-class ColorChangerSystem
+class DebugWindowSystem
 {
 private:
 	RenderSystem* rSystem;
 	EntityManger* eManager;
 	std::vector<EntityID> changeableObjects;
-	XMFLOAT4 color;
+	XMFLOAT4 color = { 1.0f,1.0f,1.0f,1.0f };
 public:
-	ColorChangerSystem(RenderSystem* system, EntityManger* manager);
+	DebugWindowSystem(RenderSystem* system, EntityManger* manager);
 	void registerItem(EntityID eId);
 	void UpdateSystem(float time, float deltaTime);
 };
@@ -67,6 +67,31 @@ public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
+class ControllSystem
+{
+private:
+	std::vector<EntityID> entities;
+	EntityManger* mEManager;
+	float speed = 10.0f;
+public:
+	ControllSystem(EntityManger* eManager);
+	void AddToSystem(EntityID id);
+	void UpdateSystem(float time, float deltaTime);
+};
+
+class GlobalMovement
+{
+private:
+	std::vector<EntityID> entities;
+	EntityManger* mEManager;
+	XMFLOAT3 bounds = { 500.0f,500.0f,500.0f };
+
+public:
+	GlobalMovement(EntityManger* eManager);
+	void AddToSystem(EntityID eId);
+	void UpdateSystem(float time, float deltaTime);
+};
+
 struct RenderItemDesc
 {
 	std::string GeometryName;
@@ -94,7 +119,6 @@ void static CreateRenderItem(RenderItemDesc* desc, DX12Render* render, EntityID 
 	ritem.baseVertexLocation = sMesh->BaseVertexLocation;
 
 	RenderComponent& rComp = eManger->mRenderData[eId];
-	rComp.worldPos = ritem.WorldPos;
 	rComp.PrimitiveType = ritem.PrimitiveType;
 	rComp.layer = desc->Layer;
 	rComp.GeoIndex = ritem.GeoIndex;

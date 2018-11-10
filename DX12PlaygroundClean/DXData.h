@@ -18,7 +18,6 @@ struct RenderItem
 
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	s32 NumFramesDirty = gNumFrameResources;
 	u32 ObjCBIndex = -1;
 	u32 MatCBIndex = -1;
 	u32 texHeapIndex = -1;
@@ -226,18 +225,13 @@ void static UpdateObjectPassCB(std::vector<RenderItem>& rItems,
 {
 	for (int i = 0; i < rItems.size(); i++)
 	{
-		if (rItems[i].NumFramesDirty > 0)
-		{
-			XMMATRIX world = XMLoadFloat4x4(&rItems[i].WorldPos);
-			XMMATRIX texTransform = XMLoadFloat4x4(&rItems[i].TextureTransform);
+		XMMATRIX world = XMLoadFloat4x4(&rItems[i].WorldPos);
+		XMMATRIX texTransform = XMLoadFloat4x4(&rItems[i].TextureTransform);
 
-			ObjectConstants objConst;
-			XMStoreFloat4x4(&objConst.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConst.TextureTransform, XMMatrixTranspose(texTransform));
-			currentObjectCB->CopyData(rItems[i].ObjCBIndex, objConst);
-
-			rItems[i].NumFramesDirty--;
-		}
+		ObjectConstants objConst;
+		XMStoreFloat4x4(&objConst.World, XMMatrixTranspose(world));
+		XMStoreFloat4x4(&objConst.TextureTransform, XMMatrixTranspose(texTransform));
+		currentObjectCB->CopyData(rItems[i].ObjCBIndex, objConst);
 	}
 }
 

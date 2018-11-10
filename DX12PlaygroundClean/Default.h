@@ -82,4 +82,6 @@ static int Rand(int a, int b)
 	return a + rand() % ((b - a) + 1);
 }
 
+static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
+static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 const s32 gNumFrameResources = 3;

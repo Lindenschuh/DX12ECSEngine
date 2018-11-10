@@ -131,11 +131,15 @@
     <ClCompile Include="Ext\imgui_impl_dx12.cpp" />
     <ClCompile Include="Ext\imgui_impl_win32.cpp" />
     <ClCompile Include="FrameResource.cpp" />
+    <ClCompile Include="OOP\Components.cpp" />
+    <ClCompile Include="OOP\IComponent.cpp" />
+    <ClCompile Include="OOP\GameObject.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="InitDX.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="OOP\Transform.cpp" />
     <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -152,11 +156,15 @@
     <ClInclude Include="Ext\imgui_impl_win32.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="DXData.h" />
+    <ClInclude Include="OOP\Components.h" />
+    <ClInclude Include="OOP\IComponent.h" />
+    <ClInclude Include="OOP\GameObject.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="InitDX.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SimpleHashTable.h" />
     <ClInclude Include="Timer.h" />
+    <ClInclude Include="OOP\Transform.h" />
     <ClInclude Include="Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
