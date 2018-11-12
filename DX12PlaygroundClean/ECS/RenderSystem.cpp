@@ -37,8 +37,8 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 			PositionComponent& pComp = eManager->mPositions[eId];
 			RenderItem&  rItem = renderer->mRItems[rComp.layer][rComp.renderItemId];
 
-			XMMATRIX Mat = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z));
-			XMStoreFloat4x4(&rItem.WorldPos, Mat);
+			XMStoreFloat4x4(&rItem.WorldPos,
+				XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z)));
 
 			rItem.GeoIndex = rComp.GeoIndex;
 			rItem.MatCBIndex = rComp.MatCBIndex;
@@ -47,9 +47,6 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 			rItem.texHeapIndex = rComp.texHeapIndex;
 		}
 	}
-
-	renderer->Update();
-	renderer->Draw();
 }
 
 void GuiComponent::UpdateSystem(float time, float deltaTime)

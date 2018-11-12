@@ -1,4 +1,4 @@
-#include "InitDX.h"
+#include "RenderCore/InitDX.h"
 #include "OOP/GameObject.h"
 #include "OOP/Components.h"
 #include "ECS/RenderSystem.h"
@@ -205,82 +205,10 @@ void setUpECS()
 }
 
 //ECS
-int main()
-{
-	Waves wave(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
-
-	DX12Context* dxC = new DX12Context(1280, 720, "Winnidow");
-
-	DX12Render* render = new DX12Render(dxC, &wave);
-
-	buildLandGeometry(render, dxC);
-	buildWavesGeometryBuffers(render, dxC, &wave);
-	buildBoxGeo(render, dxC);
-	loadTextures(render, dxC);
-	buildMaterials(render);
-	setUpECS();
-	//buildRenderItems(render);
-	int boxCount = 100000;
-	int maxWidth = (boxCount / 100);
-	int height = 0;
-	int width = 0;
-	float maxSpeed = 8;
-	float minSpeed = 3;
-	GlobalMovement globalMovement(&gObjects);
-
-	for (int i = 0; i < boxCount; i++)
-	{
-		EntityID eId = gObjects.addEntity("box");
-		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
-		gObjects.mFlags[eId] |= (gObjects.FlagPosition | gObjects.FlagRenderData);
-
-		if (width > maxWidth)
-		{
-			width = 0;
-			height += 10;
-		}
-		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
-		width += 10;
-		RenderItemDesc desc;
-		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "wirefence";
-		desc.SubMeshName = "box";
-		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::Opaque;
-		CreateRenderItem(&desc, render, i, &gObjects);
-		globalMovement.AddToSystem(eId);
-	}
-
-	render->FinishSetup();
-
-	gObjects.mFlags[gObjects.addEntity("camera")] |= gObjects.FlagCamera;
-
-	CameraSystem cameraSystem(&gObjects, render);
-	cameraSystem.AddObjectToSystem(boxCount + 1);
-	ControllSystem con(&gObjects);
-	con.AddToSystem(boxCount + 1);
-
-	GuiComponent guiSystem;
-	RenderSystem renderSystem(&gObjects, render);
-	DebugWindowSystem debugSystem(&renderSystem, &gObjects);
-	debugSystem.registerItem(2);
-
-	while (render->isWindowActive())
-	{
-		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		debugSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		cameraSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-	}
-
-	return 0;
-}
-
-// OOP
 // int main()
 // {
 // 	Waves wave(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
+//
 // 	DX12Context* dxC = new DX12Context(1280, 720, "Winnidow");
 //
 // 	DX12Render* render = new DX12Render(dxC, &wave);
@@ -290,59 +218,133 @@ int main()
 // 	buildBoxGeo(render, dxC);
 // 	loadTextures(render, dxC);
 // 	buildMaterials(render);
-// 	std::vector<GameObject *> AllGameObjects;
-//
+// 	setUpECS();
+// 	//buildRenderItems(render);
 // 	int boxCount = 100000;
 // 	int maxWidth = (boxCount / 100);
 // 	int height = 0;
 // 	int width = 0;
 // 	float maxSpeed = 8;
 // 	float minSpeed = 3;
-//
-// 	GameObject* gui = new GameObject();
-// 	gui->RegisterCompoment(new OOPGuiComponent());
-//
-// 	AllGameObjects.push_back(gui);
-//
-// 	GameObject* cam = new GameObject();
-// 	cam->RegisterCompoment(new OOPCameraComponent(render));
-// 	AllGameObjects.push_back(cam);
+// 	GlobalMovement globalMovement(&gObjects);
 //
 // 	for (int i = 0; i < boxCount; i++)
 // 	{
-// 		GameObject* g = new GameObject();
-// 		AllGameObjects.push_back(g);
+// 		EntityID eId = gObjects.addEntity("box");
+// 		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
+// 		gObjects.mFlags[eId] |= (gObjects.FlagPosition | gObjects.FlagRenderData);
 //
 // 		if (width > maxWidth)
 // 		{
 // 			width = 0;
 // 			height += 10;
 // 		}
-// 		g->transFormComp->Position = XMFLOAT3(width, 0.0f, height);
+// 		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
 // 		width += 10;
-// 		OOPRenderItemDesc desc;
+// 		RenderItemDesc desc;
 // 		desc.GeometryName = "boxGeo";
 // 		desc.MaterialName = "wirefence";
 // 		desc.SubMeshName = "box";
 // 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 // 		desc.Layer = RenderLayer::Opaque;
-// 		g->RegisterCompoment(new OOPRenderCompoment(render, &desc));
-// 		g->RegisterCompoment(new OOPMovementCompomenty());
+// 		CreateRenderItem(&desc, render, i, &gObjects);
+// 		globalMovement.AddToSystem(eId);
 // 	}
 //
 // 	render->FinishSetup();
 //
-// 	for (int i = 0; i < AllGameObjects.size(); i++)
-// 	{
-// 		AllGameObjects[i]->Init();
-// 	}
+// 	gObjects.mFlags[gObjects.addEntity("camera")] |= gObjects.FlagCamera;
+//
+// 	CameraSystem cameraSystem(&gObjects, render);
+// 	cameraSystem.AddObjectToSystem(boxCount + 1);
+// 	ControllSystem con(&gObjects);
+// 	con.AddToSystem(boxCount + 1);
+//
+// 	GuiComponent guiSystem;
+// 	RenderSystem renderSystem(&gObjects, render);
+// 	DebugWindowSystem debugSystem(&renderSystem, &gObjects);
+// 	debugSystem.registerItem(2);
+//
 // 	while (render->isWindowActive())
 // 	{
-// 		for (int i = 0; i < AllGameObjects.size(); i++)
-// 		{
-// 			AllGameObjects[i]->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-// 		}
+// 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+// 		debugSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+// 		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+// 		cameraSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+// 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 // 		render->Update();
 // 		render->Draw();
 // 	}
+//
+// 	return 0;
 // }
+
+// OOP
+int main()
+{
+	Waves wave(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
+	DX12Context* dxC = new DX12Context(1280, 720, "Winnidow");
+
+	DX12Render* render = new DX12Render(dxC, &wave);
+
+	buildLandGeometry(render, dxC);
+	buildWavesGeometryBuffers(render, dxC, &wave);
+	buildBoxGeo(render, dxC);
+	loadTextures(render, dxC);
+	buildMaterials(render);
+	std::vector<GameObject *> AllGameObjects;
+
+	int boxCount = 100000;
+	int maxWidth = (boxCount / 100);
+	int height = 0;
+	int width = 0;
+	float maxSpeed = 8;
+	float minSpeed = 3;
+
+	GameObject* gui = new GameObject();
+	gui->RegisterCompoment(new OOPGuiComponent());
+
+	AllGameObjects.push_back(gui);
+
+	GameObject* cam = new GameObject();
+	cam->RegisterCompoment(new OOPCameraComponent(render));
+	AllGameObjects.push_back(cam);
+
+	for (int i = 0; i < boxCount; i++)
+	{
+		GameObject* g = new GameObject();
+		AllGameObjects.push_back(g);
+
+		if (width > maxWidth)
+		{
+			width = 0;
+			height += 10;
+		}
+		g->transFormComp->Position = XMFLOAT3(width, 0.0f, height);
+		width += 10;
+		OOPRenderItemDesc desc;
+		desc.GeometryName = "boxGeo";
+		desc.MaterialName = "wirefence";
+		desc.SubMeshName = "box";
+		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		desc.Layer = RenderLayer::Opaque;
+		g->RegisterCompoment(new OOPRenderCompoment(render, &desc));
+		g->RegisterCompoment(new OOPMovementCompomenty());
+	}
+
+	render->FinishSetup();
+
+	for (int i = 0; i < AllGameObjects.size(); i++)
+	{
+		AllGameObjects[i]->Init();
+	}
+	while (render->isWindowActive())
+	{
+		for (int i = 0; i < AllGameObjects.size(); i++)
+		{
+			AllGameObjects[i]->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		}
+		render->Update();
+		render->Draw();
+	}
+}

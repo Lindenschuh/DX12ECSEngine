@@ -1,8 +1,9 @@
 #include <assert.h>
 #include "InitDX.h"
+/*
 #include "Ext/imgui_impl_win32.h"
 #include "Ext/imgui_impl_dx12.h"
-
+*/
 DX12Render::DX12Render(DX12Context* context, Waves* wave)
 {
 	mTimer = new GameTimer();

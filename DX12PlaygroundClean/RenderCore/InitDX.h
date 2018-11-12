@@ -1,15 +1,15 @@
 #pragma once
-#include "Default.h"
-#include "Timer.h"
+#include "../Core/Default.h"
+#include "../Util/Timer.h"
+#include "../Util/GeometryGenerator.h"
+#include "../Util/Waves.h"
+#include "../ECS/EntitySystem.h"
+#include "../Ext/DDSTextureLoader.h"
+#include "FrameResource.h"
 #include "DXHelpers.h"
 #include "DXData.h"
-#include "FrameResource.h"
-#include "GeometryGenerator.h"
-#include "Waves.h"
-#include "DX12Context.h"
 #include "Camera.h"
-#include "ECS/EntitySystem.h"
-#include "Ext/DDSTextureLoader.h"
+#include "DX12Context.h"
 
 class DX12Render
 {

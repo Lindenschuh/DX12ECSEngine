@@ -1,7 +1,7 @@
 #pragma once
 #include "EntitySystem.h"
-#include "../InitDX.h"
-#include "../Waves.h"
+#include "../RenderCore/InitDX.h"
+#include "../Util/Waves.h"
 
 class RenderSystem
 {

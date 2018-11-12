@@ -1,6 +1,6 @@
 #pragma once
-#include "Default.h"
-#include "DynamicArray.h"
+#include "../Core/Default.h"
+
 class Waves
 {
 public:

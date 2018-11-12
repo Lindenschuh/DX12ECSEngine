@@ -1,9 +1,9 @@
 #pragma once
-#include "Default.h"
+#include "../Core/Default.h"
 #include "Camera.h"
 #include "DX12Context.h"
-#include "Timer.h"
-#include "Waves.h"
+#include "../Util/Timer.h"
+#include "../Util/Waves.h"
 #include "DXHelpers.h"
 enum RenderLayer
 {

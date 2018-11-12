@@ -1,8 +1,8 @@
 #pragma once
-#include "Default.h"
+#include "..\Core\Default.h"
 #include <WindowsX.h>
-#include "Ext/imgui_impl_win32.h"
-#include "Ext/imgui_impl_dx12.h"
+#include "../Ext/imgui_impl_win32.h"
+#include "../Ext/imgui_impl_dx12.h"
 #include <array>
 const char gClassName[] = "WindowClassName";
 

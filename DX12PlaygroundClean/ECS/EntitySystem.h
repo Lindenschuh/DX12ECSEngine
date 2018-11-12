@@ -1,7 +1,7 @@
 #pragma once
 
-#include "..\Default.h"
-#include "..\DXData.h"
+#include "..\Core\Default.h"
+#include "..\RenderCore\DXData.h"
 
 typedef u32 EntityID;
 

@@ -1,5 +1,5 @@
 #include "transform.h"
-#include "..\InitDX.h"
+#include "..\RenderCore\InitDX.h"
 
 struct OOPRenderItemDesc
 {
@@ -9,6 +9,7 @@ struct OOPRenderItemDesc
 	RenderLayer Layer;
 	D3D_PRIMITIVE_TOPOLOGY PrimitiveType;
 };
+
 class OOPRenderCompoment : public IComponent
 {
 private:
