@@ -128,7 +128,7 @@ struct MaterialConstants
 
 struct Material
 {
-	s32 MatCBIndex = -1;
+	MaterialID MatCBIndex = -1;
 
 	s32 DiffuseSrvHeapIndex = -1;
 

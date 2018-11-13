@@ -39,6 +39,11 @@ typedef int64_t		s64;
 typedef float		f32;
 typedef double		f64;
 
+typedef u32 MaterialID;
+typedef u32 TextureID;
+typedef u32 GeometryID;
+typedef u32 FrameResourceID;
+
 using namespace DirectX;
 using namespace Microsoft::WRL;
 

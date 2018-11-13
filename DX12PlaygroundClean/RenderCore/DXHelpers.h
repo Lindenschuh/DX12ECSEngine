@@ -58,7 +58,7 @@ ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12Device * device,
 	ComPtr<ID3D12Resource>& uploadBuffer);
 
 ComPtr<ID3DBlob> CompileShader(
-	const char* filename,
+	const wchar_t* filename,
 	const D3D_SHADER_MACRO* defines,
 	const char* entryPoint,
 	const char* target);

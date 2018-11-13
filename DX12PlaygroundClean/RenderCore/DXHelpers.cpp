@@ -48,7 +48,7 @@ ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12Device * device,
 }
 
 ComPtr<ID3DBlob> CompileShader(
-	const char * filename,
+	const wchar_t * filename,
 	const D3D_SHADER_MACRO * defines,
 	const char * entryPoint,
 	const char * target)
@@ -61,7 +61,7 @@ ComPtr<ID3DBlob> CompileShader(
 
 	ComPtr<ID3DBlob> byteCode;
 	ComPtr<ID3DBlob> errors;
-	HR(D3DCompileFromFile(CT2CW(filename), defines,
+	HR(D3DCompileFromFile(filename, defines,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint,
 		target, compileFlags, 0,
 		&byteCode, &errors));

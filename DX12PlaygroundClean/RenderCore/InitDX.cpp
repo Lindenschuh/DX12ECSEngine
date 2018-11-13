@@ -1,9 +1,6 @@
 #include <assert.h>
 #include "InitDX.h"
-/*
-#include "Ext/imgui_impl_win32.h"
-#include "Ext/imgui_impl_dx12.h"
-*/
+
 DX12Render::DX12Render(DX12Context* context, Waves* wave)
 {
 	mTimer = new GameTimer();
@@ -292,8 +289,8 @@ void DX12Render::buildDescriptorHeaps()
 
 void DX12Render::buildShaders()
 {
-	mShaders["standardVS"] = CompileShader("Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
-	mShaders["opaquePS"] = CompileShader("Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
+	mShaders["standardVS"] = CompileShader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
+	mShaders["opaquePS"] = CompileShader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
 
 	gInputLayout[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	gInputLayout[1] = { "NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 };
@@ -302,8 +299,7 @@ void DX12Render::buildShaders()
 
 void DX12Render::buildPSO()
 {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
-	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc = {};
 	opaquePsoDesc.InputLayout = { gInputLayout, 3 };
 	opaquePsoDesc.pRootSignature = mRootSignature.Get();
 	opaquePsoDesc.VS =

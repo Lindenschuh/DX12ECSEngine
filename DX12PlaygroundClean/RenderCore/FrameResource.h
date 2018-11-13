@@ -6,7 +6,8 @@
 class FrameResource
 {
 public:
-	FrameResource(ID3D12Device* device, u32 passCount, u32 objectCount, u32 materialCount, u32 waveVertCount);
+	FrameResource(ID3D12Device* device, u32 passCount,
+		u32 objectCount, u32 materialCount, u32 waveVertCount);
 
 	ComPtr<ID3D12CommandAllocator> CmdListAlloc;
 
