@@ -47,7 +47,7 @@ MaterialID MaterialSystem::GetMaterialID(std::string name)
 	return mMaterialIDs[name];
 }
 
-void MaterialSystem::UpdateMaterials(UploadBuffer<MaterialConstants>* materialBuffer)
+void MaterialSystem::UpdateMaterials(UploadBuffer<MaterialData>* materialBuffer)
 {
 	for (int i = 0; i < mAllMaterials.size(); i++)
 	{
@@ -57,12 +57,13 @@ void MaterialSystem::UpdateMaterials(UploadBuffer<MaterialConstants>* materialBu
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat.MatTransform);
 
-			MaterialConstants matConst;
-			matConst.DiffuseAlbedo = mat.DiffuseAlbedo;
-			matConst.FresnelR0 = mat.FresnelR0;
-			matConst.Roughness = mat.Roughness;
-			XMStoreFloat4x4(&matConst.MatTransform, XMMatrixTranspose(matTransform));
-			materialBuffer->CopyData(mat.MatCBIndex, matConst);
+			MaterialData matData;
+			matData.DiffuseAlbedo = mat.DiffuseAlbedo;
+			matData.FresnelR0 = mat.FresnelR0;
+			matData.Roughness = mat.Roughness;
+			XMStoreFloat4x4(&matData.MatTransform, XMMatrixTranspose(matTransform));
+			matData.DiffuseMapIndex = mat.DiffuseSrvHeapIndex;
+			materialBuffer->CopyData(mat.MatCBIndex, matData);
 
 			mat.NumFramesDirty--;
 		}

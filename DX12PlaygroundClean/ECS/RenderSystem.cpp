@@ -35,16 +35,12 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 		{
 			RenderComponent& rComp = eManager->mRenderData[eId];
 			PositionComponent& pComp = eManager->mPositions[eId];
-			RenderItem&  rItem = renderer->mRItems[rComp.layer][rComp.renderItemId];
+			InstanceData&  instance = renderer->mRItems[rComp.layer][rComp.renderItemID].Instances[rComp.instanceID];
 
-			XMStoreFloat4x4(&rItem.WorldPos,
+			XMStoreFloat4x4(&instance.World,
 				XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z)));
-
-			rItem.GeoIndex = rComp.GeoIndex;
-			rItem.MatCBIndex = rComp.MatCBIndex;
-			rItem.PrimitiveType = rComp.PrimitiveType;
-			rItem.TextureTransform = rComp.textureTransform;
-			rItem.texHeapIndex = rComp.texHeapIndex;
+			instance.MaterialIndex = rComp.MatCBIndex;
+			instance.TexTransform = rComp.textureTransform;
 		}
 	}
 }

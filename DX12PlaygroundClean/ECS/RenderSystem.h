@@ -89,29 +89,62 @@ struct RenderItemDesc
 
 void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityID eId, EntityManger* eManger)
 {
-	static u32 Objindex = 0;
 	MeshGeometry& md = render->mGeometrySystem->GetMeshGeomerty(desc->GeometryName);
 	Material& mat = render->mMaterialSystem->GetMaterial(desc->MaterialName);
 	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
 
-	RenderItem ritem;
-	ritem.WorldPos = Identity4x4();
-	ritem.ObjCBIndex = Objindex++;
-	ritem.MatCBIndex = mat.MatCBIndex;
-	ritem.texHeapIndex = mat.DiffuseSrvHeapIndex;
-	ritem.GeoIndex = md.GeometryIndex;
-	ritem.PrimitiveType = desc->PrimitiveType;
-	ritem.IndexCount = sMesh.IndexCount;
-	ritem.StartIndexLocation = sMesh.StartIndexLocation;
-	ritem.baseVertexLocation = sMesh.BaseVertexLocation;
+	std::vector<RenderItem>& rItems = render->mRItems[desc->Layer];
+	s32 Objindex = -1;
+
+	for (int i = 0; i < rItems.size(); i++)
+	{
+		RenderItem& ri = rItems[i];
+		if (ri.GeoIndex == md.GeometryIndex)
+		{
+			if (ri.IndexCount == sMesh.IndexCount && ri.baseVertexLocation == sMesh.BaseVertexLocation
+				&& ri.StartIndexLocation == sMesh.StartIndexLocation)
+			{
+				Objindex = i;
+				break;
+			}
+		}
+	}
+
+	RenderItem* ritem;
+
+	if (Objindex == -1)
+	{
+		RenderItem tmpItem;
+		tmpItem.ObjCBIndex = rItems.size();
+		tmpItem.GeoIndex = md.GeometryIndex;
+
+		tmpItem.PrimitiveType = desc->PrimitiveType;
+
+		tmpItem.IndexCount = sMesh.IndexCount;
+		tmpItem.StartIndexLocation = sMesh.StartIndexLocation;
+		tmpItem.baseVertexLocation = sMesh.BaseVertexLocation;
+
+		render->AddRenderItem("box", tmpItem, desc->Layer);
+
+		Objindex = tmpItem.ObjCBIndex;
+		ritem = &rItems[tmpItem.ObjCBIndex];
+	}
+	else
+	{
+		ritem = &rItems[Objindex];
+	}
+
+	InstanceData id;
+	id.MaterialIndex = mat.MatCBIndex;
+	id.TexTransform = Identity4x4();
+	id.World = Identity4x4();
+	u32 instanceid = ritem->Instances.size();
+	ritem->Instances.push_back(id);
 
 	RenderComponent& rComp = eManger->mRenderData[eId];
-	rComp.PrimitiveType = ritem.PrimitiveType;
 	rComp.layer = desc->Layer;
-	rComp.GeoIndex = ritem.GeoIndex;
-	rComp.texHeapIndex = ritem.texHeapIndex;
-	rComp.MatCBIndex = ritem.MatCBIndex;
-	rComp.renderItemId = render->mRItems[desc->Layer].size();
-	rComp.IsDirty = false;
-	render->AddRenderItem(eManger->mNames[eId], ritem, desc->Layer);
+	rComp.GeoIndex = ritem->GeoIndex;
+	rComp.instanceID = instanceid;
+	rComp.MatCBIndex = mat.MatCBIndex;
+	rComp.renderItemID = Objindex;
 }

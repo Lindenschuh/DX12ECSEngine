@@ -3,43 +3,76 @@
 OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* desc)
 {
 	renderer = ren;
-	static u32 Objindex = 0;
 	MeshGeometry& md = renderer->mGeometrySystem->GetMeshGeomerty(desc->GeometryName);
 	Material& mat = renderer->mMaterialSystem->GetMaterial(desc->MaterialName);
 	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
-	RenderItem ritem;
-	ritem.WorldPos = Identity4x4();
-	ritem.ObjCBIndex = Objindex++;
-	ritem.MatCBIndex = mat.MatCBIndex;
-	ritem.texHeapIndex = mat.DiffuseSrvHeapIndex;
-	ritem.GeoIndex = md.GeometryIndex;
-	ritem.PrimitiveType = desc->PrimitiveType;
-	ritem.IndexCount = sMesh.IndexCount;
-	ritem.StartIndexLocation = sMesh.StartIndexLocation;
-	ritem.baseVertexLocation = sMesh.BaseVertexLocation;
 
-	PrimitiveType = ritem.PrimitiveType;
-	layer = desc->Layer;
-	GeoIndex = ritem.GeoIndex;
-	texHeapIndex = ritem.texHeapIndex;
-	MatCBIndex = ritem.MatCBIndex;
-	renderItemId = renderer->mRItems[desc->Layer].size();
-	IsDirty = false;
-	renderer->AddRenderItem("box", ritem, desc->Layer);
+	std::vector<RenderItem>& rItems = ren->mRItems[desc->Layer];
+	s32 Objindex = -1;
+
+	for (int i = 0; i < rItems.size(); i++)
+	{
+		RenderItem& ri = rItems[i];
+		if (ri.GeoIndex == md.GeometryIndex)
+		{
+			if (ri.IndexCount == sMesh.IndexCount && ri.baseVertexLocation == sMesh.BaseVertexLocation
+				&& ri.StartIndexLocation == sMesh.StartIndexLocation)
+			{
+				Objindex = i;
+				break;
+			}
+		}
+	}
+
+	RenderItem* ritem;
+
+	if (Objindex == -1)
+	{
+		RenderItem tmpItem;
+		tmpItem.ObjCBIndex = rItems.size();
+		tmpItem.GeoIndex = md.GeometryIndex;
+
+		tmpItem.PrimitiveType = desc->PrimitiveType;
+
+		tmpItem.IndexCount = sMesh.IndexCount;
+		tmpItem.StartIndexLocation = sMesh.StartIndexLocation;
+		tmpItem.baseVertexLocation = sMesh.BaseVertexLocation;
+
+		ren->AddRenderItem("box", tmpItem, desc->Layer);
+
+		ritem = &rItems[tmpItem.ObjCBIndex];
+		Objindex = tmpItem.ObjCBIndex;
+	}
+	else
+	{
+		ritem = &rItems[Objindex];
+	}
+
+	InstanceData id;
+	id.MaterialIndex = mat.MatCBIndex;
+	id.TexTransform = Identity4x4();
+	id.World = Identity4x4();
+	u32 instanceid = ritem->Instances.size();
+	ritem->Instances.push_back(id);
+
+	this->layer = desc->Layer;
+	this->GeoIndex = ritem->GeoIndex;
+	this->instanceID = instanceid;
+	this->MatCBIndex = mat.MatCBIndex;
+	this->renderItemID = Objindex;
 }
 
 void OOPRenderCompoment::Update(float time, float deltaTime)
 {
 	XMFLOAT3& pos = transFormComp->Position;
-	RenderItem& rItem = renderer->mRItems[layer][renderItemId];
-	XMMATRIX Mat = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pos.x, pos.y, pos.z));
-	XMStoreFloat4x4(&rItem.WorldPos, Mat);
+	InstanceData&  instance = renderer->mRItems[layer][renderItemID].Instances[instanceID];
 
-	rItem.GeoIndex = GeoIndex;
-	rItem.MatCBIndex = MatCBIndex;
-	rItem.PrimitiveType = PrimitiveType;
-	rItem.TextureTransform = textureTransform;
-	rItem.texHeapIndex = texHeapIndex;
+	XMStoreFloat4x4(&instance.World,
+		XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(transFormComp->Position.x,
+			transFormComp->Position.y, transFormComp->Position.z)));
+
+	instance.MaterialIndex = MatCBIndex;
+	instance.TexTransform = textureTransform;
 }
 void OOPGuiComponent::Init()
 {

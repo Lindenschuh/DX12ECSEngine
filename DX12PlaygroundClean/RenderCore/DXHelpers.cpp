@@ -66,5 +66,7 @@ ComPtr<ID3DBlob> CompileShader(
 		target, compileFlags, 0,
 		&byteCode, &errors));
 
+	if (errors != nullptr)
+		printf("%s\n", (char*)errors->GetBufferPointer());
 	return byteCode;
 }

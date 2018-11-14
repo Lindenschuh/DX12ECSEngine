@@ -26,8 +26,14 @@ DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName)
 void DX12Renderer::FinishSetup()
 {
 	mTextureSystem->UploadTextures();
+	u32 instanceCount = 0;
+	for (int i = 0; i < mRItems[Opaque].size(); i++)
+	{
+		instanceCount += mRItems[Opaque][i].Instances.size();
+	}
+
 	mFrameResourceSystem = new FrameResourceSystem(gNumFrameResources, mDXCon, 1,
-		mRItems[Opaque].size(), mMaterialSystem->GetMaterialCount());
+		instanceCount, mMaterialSystem->GetMaterialCount());
 
 	HR(mDXCon->mCmdList->Close());
 	ID3D12CommandList* cmdLists[] = { mDXCon->mCmdList.Get() };
@@ -101,8 +107,13 @@ void DX12Renderer::Draw()
 
 	mDXCon->mCmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
+	auto materialBuffer = currentFrameResource.MaterialBuffer->Resource();
+	mDXCon->mCmdList->SetGraphicsRootShaderResourceView(1, materialBuffer->GetGPUVirtualAddress());
+
 	auto passCB = currentFrameResource.PassCB->Resource();
 	mDXCon->mCmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+
+	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
 
 	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque]);
 
@@ -112,6 +123,7 @@ void DX12Renderer::Draw()
 
 	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackbuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
 	HR(mDXCon->mCmdList->Close());
 
 	ID3D12CommandList* cmdLists[] = { mDXCon->mCmdList.Get() };
@@ -131,10 +143,10 @@ void DX12Renderer::Update()
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 	for (u32 i = 0; i < RenderLayer::Count; i++)
 	{
-		UpdateObjectPassCB(mRItems[i], currentFrameResource.ObjecCB);
+		UpdateObjectPassCB(mRItems[i], currentFrameResource.InstanceBuffer);
 	}
 
-	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialCB);
+	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialBuffer);
 	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, &mMainCam, mDXCon, mTimer, mProj);
 }
 
@@ -153,14 +165,14 @@ void DX12Renderer::ProcessGlobalEvents()
 void DX12Renderer::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable;
-	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
-	slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
-	slotRootParameter[1].InitAsConstantBufferView(0);
-	slotRootParameter[2].InitAsConstantBufferView(1);
-	slotRootParameter[3].InitAsConstantBufferView(2);
+	slotRootParameter[0].InitAsShaderResourceView(0, 1);
+	slotRootParameter[1].InitAsShaderResourceView(1, 1);
+	slotRootParameter[2].InitAsConstantBufferView(0);
+	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	auto staticSmaplers = mDXCon->GetStaticSamplers();
 
@@ -189,31 +201,19 @@ void DX12Renderer::BuildRootSignature()
 void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vector<RenderItem>& rItems)
 {
 	FrameResource mCurrentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
-	u32 objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectConstants));
-	u32 matCBByteSize = CalcConstantBufferByteSize(sizeof(MaterialConstants));
-
-	ID3D12Resource* objConst = mCurrentFrameResource.ObjecCB->Resource();
-	ID3D12Resource* matConst = mCurrentFrameResource.MaterialCB->Resource();
 
 	for (int i = 0; i < rItems.size(); i++)
 	{
 		RenderItem& ri = rItems[i];
 		MeshGeometry& geo = mGeometrySystem->GetMeshGeomerty(ri.GeoIndex);
+
 		cmdList->IASetVertexBuffers(0, 1, &geo.VertexBufferView());
 		cmdList->IASetIndexBuffer(&geo.IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri.PrimitiveType);
 
-		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
-		tex.Offset(ri.texHeapIndex, mDXCon->mCbvSrvUavDescriptorSize);
-
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objConst->GetGPUVirtualAddress() + ri.ObjCBIndex * objCBByteSize;
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matConst->GetGPUVirtualAddress() + ri.MatCBIndex * matCBByteSize;
-
-		cmdList->SetGraphicsRootDescriptorTable(0, tex);
-		cmdList->SetGraphicsRootConstantBufferView(1, objCBAddress);
-		cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
-
-		cmdList->DrawIndexedInstanced(ri.IndexCount, 1, ri.StartIndexLocation, ri.baseVertexLocation, 0);
+		auto instanceBuffer = mCurrentFrameResource.InstanceBuffer->Resource();
+		cmdList->SetGraphicsRootShaderResourceView(0, instanceBuffer->GetGPUVirtualAddress());
+		cmdList->DrawIndexedInstanced(ri.IndexCount, ri.Instances.size(), ri.StartIndexLocation, ri.baseVertexLocation, 0);
 	}
 }
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentbackBufferView()

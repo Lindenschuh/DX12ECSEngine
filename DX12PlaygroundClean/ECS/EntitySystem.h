@@ -33,14 +33,12 @@ struct VelocityComponent
 };
 struct RenderComponent
 {
-	XMFLOAT4X4 textureTransform = Identity4x4();
-	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	RenderLayer layer = RenderLayer::Opaque;
-	u32 renderItemId = -1;
-	MaterialID MatCBIndex = -1;
-	TextureID texHeapIndex = -1;
+	XMFLOAT4X4 textureTransform = Identity4x4();
+	u32 renderItemID = -1;
 	GeometryID GeoIndex = -1;
-	bool IsDirty;
+	u32 instanceID = -1;
+	MaterialID MatCBIndex = -1;
 };
 
 struct EntityManger

@@ -18,7 +18,34 @@
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
 
-Texture2D    gDiffuseMap : register(t0);
+struct InstanceData
+{
+	float4x4 World;
+	float4x4 TexTransform;
+	uint     MaterialIndex;
+	uint     InstPad0;
+	uint     InstPad1;
+	uint     InstPad2;
+};
+
+
+
+struct MaterialData
+{
+	float4   DiffuseAlbedo;
+	float3   FresnelR0;
+	float    Roughness;
+	float4x4 MatTransform;
+	uint     DiffuseMapIndex;
+	uint     MatPad0;
+	uint     MatPad1;
+	uint     MatPad2;
+};
+
+Texture2D gDiffuseMap[3] : register(t0);
+
+StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
+StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
 
 
 SamplerState gsamPointWrap        : register(s0);
@@ -28,15 +55,11 @@ SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
 
-// Constant data that varies per frame.
-cbuffer cbPerObject : register(b0)
-{
-	float4x4 gWorld;
-	float4x4 gTexTransform;
-};
+
+
 
 // Constant data that varies per material.
-cbuffer cbPass : register(b1)
+cbuffer cbPass : register(b0)
 {
 	float4x4 gView;
 	float4x4 gInvView;
@@ -61,13 +84,6 @@ cbuffer cbPass : register(b1)
 	Light gLights[MaxLights];
 };
 
-cbuffer cbMaterial : register(b2)
-{
-	float4   gDiffuseAlbedo;
-	float3   gFresnelR0;
-	float    gRoughness;
-	float4x4 gMatTransform;
-};
 
 struct VertexIn
 {
@@ -82,32 +98,50 @@ struct VertexOut
 	float3 PosW    : POSITION;
 	float3 NormalW : NORMAL;
 	float2 TexC    : TEXCOORD;
+
+	nointerpolation uint MatIndex : MATINDEX;
 };
 
-VertexOut VS(VertexIn vin)
+VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 {
 	VertexOut vout = (VertexOut)0.0f;
 
 	// Transform to world space.
-	float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+	InstanceData instData = gInstanceData[instanceID];
+	float4x4 world = instData.World;
+	float4x4 texTransform = instData.TexTransform;
+	uint matIndex = instData.MaterialIndex;
+	vout.MatIndex = matIndex;
+
+	MaterialData matData = gMaterialData[matIndex];
+
+	float4 posW = mul(float4(vin.PosL, 1.0f), world);
 	vout.PosW = posW.xyz;
 
-	// Assumes nonuniform scaling; otherwise, need to use inverse-transpose of world matrix.
-	vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
+
+	vout.NormalW = mul(vin.NormalL, (float3x3)world);
 
 	// Transform to homogeneous clip space.
 	vout.PosH = mul(posW, gViewProj);
 
 	// Output vertex attributes for interpolation across triangle.
-	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
-	vout.TexC = mul(texC, gMatTransform).xy;
+	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), texTransform);
+	vout.TexC = mul(texC, matData.MatTransform).xy;
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	float4 diffuseAlbedo = gDiffuseMap.Sample(gsamAnisotropicWrap, pin.TexC) * gDiffuseAlbedo;
+	// Fetch the material data.
+	MaterialData matData = gMaterialData[pin.MatIndex];
+	float4 diffuseAlbedo = matData.DiffuseAlbedo;
+	float3 fresnelR0 = matData.FresnelR0;
+	float  roughness = matData.Roughness;
+	uint diffuseTexIndex = matData.DiffuseMapIndex;
+
+	// Dynamically look up the texture in the array.
+	diffuseAlbedo *= gDiffuseMap[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
 
 	// Interpolating normal can unnormalize it, so renormalize it.
 	pin.NormalW = normalize(pin.NormalW);
@@ -118,8 +152,8 @@ float4 PS(VertexOut pin) : SV_Target
 	// Light terms.
 	float4 ambient = gAmbientLight * diffuseAlbedo;
 
-	const float shininess = 1.0f - gRoughness;
-	Material mat = { diffuseAlbedo, gFresnelR0, shininess };
+	const float shininess = 1.0f - roughness;
+	Material mat = { diffuseAlbedo, fresnelR0, shininess };
 	float3 shadowFactor = 1.0f;
 	float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
 		pin.NormalW, toEyeW, shadowFactor);

@@ -11,18 +11,38 @@ enum RenderLayer
 	Count
 };
 
+struct InstanceData
+{
+	XMFLOAT4X4 World = Identity4x4();
+	XMFLOAT4X4 TexTransform = Identity4x4();
+	UINT MaterialIndex;
+	UINT InstancePad0;
+	UINT InstancePad1;
+	UINT InstancePad2;
+};
+
+struct MaterialData
+{
+	XMFLOAT4 DiffuseAlbedo = { 1.0f,1.0f,1.0f,1.0f };
+	XMFLOAT3 FresnelR0 = { 0.01f,0.01f,0.01f };
+	float Roughness = 0.25f;
+
+	XMFLOAT4X4 MatTransform = Identity4x4();
+
+	UINT DiffuseMapIndex = 0;
+	UINT MaterialPad0;
+	UINT MaterialPad1;
+	UINT MaterialPad2;
+};
+
 struct RenderItem
 {
-	XMFLOAT4X4 WorldPos = Identity4x4();
-	XMFLOAT4X4 TextureTransform = Identity4x4();
-
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	u32 ObjCBIndex = -1;
-	u32 MatCBIndex = -1;
-	u32 texHeapIndex = -1;
 	u32 GeoIndex = -1;
 
+	std::vector<InstanceData> Instances;
 	//IndexParameters
 	u32 IndexCount = 0;
 	u32 StartIndexLocation = 0;
@@ -130,9 +150,9 @@ struct Material
 {
 	MaterialID MatCBIndex = -1;
 
-	s32 DiffuseSrvHeapIndex = -1;
+	TextureID DiffuseSrvHeapIndex = -1;
 
-	s32 NormalSrvHeapIndex = -1;
+	TextureID NormalSrvHeapIndex = -1;
 
 	s32 NumFramesDirty = gNumFrameResources;
 
@@ -198,17 +218,24 @@ struct PassConstants
 };
 
 void static UpdateObjectPassCB(std::vector<RenderItem>& rItems,
-	UploadBuffer<ObjectConstants>* currentObjectCB)
+	UploadBuffer<InstanceData>* currentInstanceBuffer)
 {
 	for (int i = 0; i < rItems.size(); i++)
 	{
-		XMMATRIX world = XMLoadFloat4x4(&rItems[i].WorldPos);
-		XMMATRIX texTransform = XMLoadFloat4x4(&rItems[i].TextureTransform);
+		u32 instanceCount = 0;
+		RenderItem& rItem = rItems[i];
 
-		ObjectConstants objConst;
-		XMStoreFloat4x4(&objConst.World, XMMatrixTranspose(world));
-		XMStoreFloat4x4(&objConst.TextureTransform, XMMatrixTranspose(texTransform));
-		currentObjectCB->CopyData(rItems[i].ObjCBIndex, objConst);
+		for (int j = 0; j < rItem.Instances.size(); j++)
+		{
+			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
+			XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
+
+			InstanceData data;
+			XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
+			XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
+			data.MaterialIndex = rItem.Instances[j].MaterialIndex;
+			currentInstanceBuffer->CopyData(instanceCount++, data);
+		}
 	}
 }
 

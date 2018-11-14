@@ -21,7 +21,7 @@ public:
 	Material& GetMaterial(std::string name);
 	Material& GetMaterial(MaterialID id);
 	MaterialID GetMaterialID(std::string name);
-	void UpdateMaterials(UploadBuffer<MaterialConstants>* frameMaterial);
+	void UpdateMaterials(UploadBuffer<MaterialData>* frameMaterial);
 
 	~MaterialSystem();
 };

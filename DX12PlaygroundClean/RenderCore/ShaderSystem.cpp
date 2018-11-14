@@ -34,10 +34,10 @@ std::pair<const char*, const char*> ShaderSystem::ResolveShaderType(ShaderType t
 	switch (type)
 	{
 	case PixelShader:
-		return std::pair<const char*, const char*>("PS", "ps_5_0");
+		return std::pair<const char*, const char*>("PS", "ps_5_1");
 		break;
 	case VertexShader:
-		return std::pair<const char*, const char*>("VS", "vs_5_0");
+		return std::pair<const char*, const char*>("VS", "vs_5_1");
 		break;
 	default:
 		return std::pair<const char*, const char*>();

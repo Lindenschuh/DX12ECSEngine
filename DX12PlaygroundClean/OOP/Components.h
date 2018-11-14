@@ -15,14 +15,13 @@ class OOPRenderCompoment : public IComponent
 private:
 	DX12Renderer* renderer;
 
-	XMFLOAT4X4 textureTransform = Identity4x4();
-	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	RenderLayer layer = RenderLayer::Opaque;
-	u32 renderItemId = -1;
-	u32 MatCBIndex = -1;
-	u32 texHeapIndex = -1;
-	u32 GeoIndex = -1;
-	bool IsDirty;
+	XMFLOAT4X4 textureTransform = Identity4x4();
+	u32 renderItemID = -1;
+	GeometryID GeoIndex = -1;
+	u32 instanceID = -1;
+	MaterialID MatCBIndex = -1;
+
 public:
 	OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* desc);
 
