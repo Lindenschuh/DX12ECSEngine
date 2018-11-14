@@ -38,7 +38,8 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 			InstanceData&  instance = renderer->mRItems[rComp.layer][rComp.renderItemID].Instances[rComp.instanceID];
 
 			XMStoreFloat4x4(&instance.World,
-				XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z)));
+				XMMatrixMultiply(XMMatrixIdentity(),
+					XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z)));
 			instance.MaterialIndex = rComp.MatCBIndex;
 			instance.TexTransform = rComp.textureTransform;
 		}
