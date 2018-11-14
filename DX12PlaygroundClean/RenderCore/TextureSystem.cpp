@@ -8,12 +8,16 @@ TextureSystem::TextureSystem(DX12Context * DXContext)
 TextureID TextureSystem::LoadTexture(std::string name, std::wstring path, TextureOptions & opt)
 {
 	Texture tex;
+	TextureID id = mAllTextures.size();
 	tex.Filename = path;
 	HR(CreateDDSTextureFromFile12(mDXContext->mD3dDevice.Get(),
 		mDXContext->mCmdList.Get(), tex.Filename.c_str(),
 		tex.Resource, tex.UploadHeap));
-	mTextureIndex[name] = mAllTextures.size();
+
+	mTextureIndex[name] = id;
 	mAllTextures.push_back(tex);
+	mTexOptions.push_back(opt);
+	return id;
 }
 
 Texture& TextureSystem::GetTexture(std::string name)

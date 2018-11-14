@@ -1,22 +1,22 @@
 #include "Components.h"
 
-OOPRenderCompoment::OOPRenderCompoment(DX12Render* ren, OOPRenderItemDesc* desc)
+OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* desc)
 {
 	renderer = ren;
 	static u32 Objindex = 0;
-	MeshGeometry* md = renderer->GetGeometry(desc->GeometryName);
-	Material* mat = renderer->GetMaterial(desc->MaterialName);
-	Submesh* sMesh = &md->Submeshes[desc->SubMeshName];
+	MeshGeometry& md = renderer->mGeometrySystem->GetMeshGeomerty(desc->GeometryName);
+	Material& mat = renderer->mMaterialSystem->GetMaterial(desc->MaterialName);
+	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
 	RenderItem ritem;
 	ritem.WorldPos = Identity4x4();
 	ritem.ObjCBIndex = Objindex++;
-	ritem.MatCBIndex = mat->MatCBIndex;
-	ritem.texHeapIndex = mat->DiffuseSrvHeapIndex;
-	ritem.GeoIndex = md->GeometryIndex;
+	ritem.MatCBIndex = mat.MatCBIndex;
+	ritem.texHeapIndex = mat.DiffuseSrvHeapIndex;
+	ritem.GeoIndex = md.GeometryIndex;
 	ritem.PrimitiveType = desc->PrimitiveType;
-	ritem.IndexCount = sMesh->IndexCount;
-	ritem.StartIndexLocation = sMesh->StartIndexLocation;
-	ritem.baseVertexLocation = sMesh->BaseVertexLocation;
+	ritem.IndexCount = sMesh.IndexCount;
+	ritem.StartIndexLocation = sMesh.StartIndexLocation;
+	ritem.baseVertexLocation = sMesh.BaseVertexLocation;
 
 	PrimitiveType = ritem.PrimitiveType;
 	layer = desc->Layer;
@@ -104,7 +104,7 @@ void OOPMovementCompomenty::Update(float time, float deltaTime)
 	}
 }
 
-OOPCameraComponent::OOPCameraComponent(DX12Render * ren)
+OOPCameraComponent::OOPCameraComponent(DX12Renderer * ren)
 {
 	renderer = ren;
 }

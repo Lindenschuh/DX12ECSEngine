@@ -37,9 +37,9 @@ struct RenderComponent
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	RenderLayer layer = RenderLayer::Opaque;
 	u32 renderItemId = -1;
-	u32 MatCBIndex = -1;
-	u32 texHeapIndex = -1;
-	u32 GeoIndex = -1;
+	MaterialID MatCBIndex = -1;
+	TextureID texHeapIndex = -1;
+	GeometryID GeoIndex = -1;
 	bool IsDirty;
 };
 

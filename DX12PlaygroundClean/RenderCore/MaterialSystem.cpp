@@ -6,13 +6,13 @@ MaterialSystem::MaterialSystem(DX12Context * DXContext, TextureSystem * tSystem)
 	mTextureSystem = tSystem;
 }
 
-MaterialID MaterialSystem::BuildMaterial(std::string & name,
-	std::string & TextureName, MaterialConstants & options)
+MaterialID MaterialSystem::BuildMaterial(std::string  name,
+	std::string  TextureName, MaterialConstants & options)
 {
 	return BuildMaterial(name, mTextureSystem->GetTextureID(TextureName), options);
 }
 
-MaterialID MaterialSystem::BuildMaterial(std::string & name, TextureID textureID, MaterialConstants & options)
+MaterialID MaterialSystem::BuildMaterial(std::string name, TextureID textureID, MaterialConstants & options)
 {
 	Material material;
 	material.MatCBIndex = mAllMaterials.size();
@@ -25,6 +25,11 @@ MaterialID MaterialSystem::BuildMaterial(std::string & name, TextureID textureID
 	mMaterialIDs[name] = material.MatCBIndex;
 
 	return material.MatCBIndex;
+}
+
+u32 MaterialSystem::GetMaterialCount()
+{
+	return mAllMaterials.size();
 }
 
 Material& MaterialSystem::GetMaterial(std::string name)

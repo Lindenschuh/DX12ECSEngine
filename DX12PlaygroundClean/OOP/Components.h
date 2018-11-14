@@ -1,5 +1,5 @@
 #include "transform.h"
-#include "..\RenderCore\InitDX.h"
+#include "..\RenderCore\DX12Renderer.h"
 
 struct OOPRenderItemDesc
 {
@@ -13,7 +13,7 @@ struct OOPRenderItemDesc
 class OOPRenderCompoment : public IComponent
 {
 private:
-	DX12Render* renderer;
+	DX12Renderer* renderer;
 
 	XMFLOAT4X4 textureTransform = Identity4x4();
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -24,7 +24,7 @@ private:
 	u32 GeoIndex = -1;
 	bool IsDirty;
 public:
-	OOPRenderCompoment(DX12Render* ren, OOPRenderItemDesc* desc);
+	OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* desc);
 
 	virtual void Init() override {}
 
@@ -59,10 +59,10 @@ public:
 	float mRadius = 50.0f;
 	bool isMain = true;
 	XMFLOAT4X4 ViewMat = Identity4x4();
-	DX12Render* renderer;
+	DX12Renderer* renderer;
 	ImVec2 lastMousePosition;
 	// Geerbt über IComponent
-	OOPCameraComponent(DX12Render* ren);
+	OOPCameraComponent(DX12Renderer* ren);
 	virtual void Init() override;
 	virtual void Update(float time, float deltaTime) override;
 };

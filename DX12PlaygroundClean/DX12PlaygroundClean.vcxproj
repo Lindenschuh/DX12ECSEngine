@@ -141,7 +141,7 @@
     <ClCompile Include="RenderCore\TextureSystem.cpp" />
     <ClCompile Include="RenderCore\ShaderSystem.cpp" />
     <ClCompile Include="Util\GeometryGenerator.cpp" />
-    <ClCompile Include="RenderCore\InitDX.cpp" />
+    <ClCompile Include="RenderCore\DX12Renderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Util\Timer.cpp" />
     <ClCompile Include="OOP\Transform.cpp" />
@@ -171,11 +171,14 @@
     <ClInclude Include="RenderCore\TextureSystem.h" />
     <ClInclude Include="RenderCore\ShaderSystem.h" />
     <ClInclude Include="Util\GeometryGenerator.h" />
-    <ClInclude Include="RenderCore\InitDX.h" />
+    <ClInclude Include="RenderCore\DX12Renderer.h" />
     <ClInclude Include="DataStructures\SimpleHashTable.h" />
     <ClInclude Include="Util\Timer.h" />
     <ClInclude Include="OOP\Transform.h" />
     <ClInclude Include="Util\Waves.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

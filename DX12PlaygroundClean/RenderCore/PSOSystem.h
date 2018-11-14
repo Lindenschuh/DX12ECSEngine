@@ -4,7 +4,6 @@
 #include "ShaderSystem.h"
 struct PSOOptions
 {
-	ID3D12RootSignature* Signature;
 	D3D12_INPUT_LAYOUT_DESC Layout;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
 	u32 SampleMask;
@@ -17,11 +16,10 @@ static D3D12_INPUT_ELEMENT_DESC gInputLayout[3]
 	{ "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,24,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 }
 };
 static PSOOptions
-DefaultOptions(ID3D12RootSignature* rSignature)
+DefaultPSOOptions()
 {
 	return
 	{
-		rSignature,
 		{gInputLayout,3 },
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
 		UINT_MAX
@@ -41,10 +39,11 @@ class PSOSystem
 private:
 	DX12Context* mDXContext;
 	ShaderSystem* mShaderSystem;
+	ID3D12RootSignature* mRootSignature;
 	std::unordered_map<std::string, PSO> mPSOs;
 public:
-	PSOSystem(DX12Context* Context, ShaderSystem* shaderSystem);
-	void BuildPSO(std::string& name, std::string& VSName, std::string& PSName, PSOOptions& options);
+	PSOSystem(DX12Context* Context, ShaderSystem* shaderSystem, ID3D12RootSignature* RootSignature);
+	void BuildPSO(std::string name, std::string VSName, std::string PSName, PSOOptions& options);
 	void ReloadPSO(std::string name);
 	PSO& GetPSO(std::string name);
 	~PSOSystem();

@@ -9,6 +9,7 @@ GeometryID GeometrySystem::LoadGeometry(GeoInfo& info)
 {
 	MeshGeometry geo;
 	GeometryID id = mAllGeometry.size();
+	geo.GeometryIndex = id;
 	const u32 vbByteSize = info.vertCount * sizeof(Vertex);
 	const u32 ibByteSize = info.indiceCount * sizeof(u16);
 
@@ -35,6 +36,7 @@ GeometryID GeometrySystem::LoadGeometry(GeoInfo& info)
 	}
 	mAllGeometry.push_back(geo);
 	mGeometryIDs[info.Name] = id;
+	return id;
 }
 
 MeshGeometry & GeometrySystem::GetMeshGeomerty(std::string name)

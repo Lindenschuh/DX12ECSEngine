@@ -8,8 +8,8 @@ FrameResourceSystem::FrameResourceSystem(u32 resourceCount, DX12Context * contex
 	mFrameResources.reserve(resourceCount);
 	for (int i = 0; i < resourceCount; i++)
 	{
-		mFrameResources[i] = FrameResource(mDXContext->mD3dDevice.Get(),
-			passCount, objectCount, materialCount, 0);
+		mFrameResources.push_back(FrameResource(mDXContext->mD3dDevice.Get(),
+			passCount, objectCount, materialCount));
 	}
 }
 

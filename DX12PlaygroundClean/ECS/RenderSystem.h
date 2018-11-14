@@ -1,16 +1,16 @@
 #pragma once
 #include "EntitySystem.h"
-#include "../RenderCore/InitDX.h"
+#include "../RenderCore/DX12Renderer.h"
 #include "../Util/Waves.h"
 
 class RenderSystem
 {
 private:
-	DX12Render* renderer;
+	DX12Renderer* renderer;
 	EntityManger* eManager;
 public:
-	RenderSystem(EntityManger* manager, DX12Render* render);
-	void SetRenderer(DX12Render* ren);
+	RenderSystem(EntityManger* manager, DX12Renderer* render);
+	void SetRenderer(DX12Renderer* ren);
 	Material* GetMaterial(EntityID id);
 	MeshGeometry* GetGeometry(EntityID id);
 	FrameResource* GetCurrentFrameResource();
@@ -40,7 +40,7 @@ class CameraSystem
 {
 private:
 	std::vector<EntityID> entities;
-	DX12Render* renderer;
+	DX12Renderer* renderer;
 	EntityManger* mEManager;
 
 	float mTheta = 1.5f * XM_PI;
@@ -48,22 +48,8 @@ private:
 	float mRadius = 50.0f;
 	ImVec2 lastMousePosition;
 public:
-	CameraSystem(EntityManger* eManager, DX12Render* ren);
+	CameraSystem(EntityManger* eManager, DX12Renderer* ren);
 	void AddObjectToSystem(EntityID id);
-	void UpdateSystem(float time, float deltaTime);
-};
-
-class WaterAnimationSystem
-{
-private:
-	std::vector<EntityID> entities;
-	EntityManger* mEManager;
-	RenderSystem* mRs;
-	float baseTime = 0.0f;
-	Waves* mWaves;
-public:
-	WaterAnimationSystem(EntityManger* eManager, Waves* waves, RenderSystem* rs);
-	void AddToSystem(EntityID id);
 	void UpdateSystem(float time, float deltaTime);
 };
 
@@ -101,22 +87,23 @@ struct RenderItemDesc
 	D3D_PRIMITIVE_TOPOLOGY PrimitiveType;
 };
 
-void static CreateRenderItem(RenderItemDesc* desc, DX12Render* render, EntityID eId, EntityManger* eManger)
+void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityID eId, EntityManger* eManger)
 {
 	static u32 Objindex = 0;
-	MeshGeometry* md = render->GetGeometry(desc->GeometryName);
-	Material* mat = render->GetMaterial(desc->MaterialName);
-	Submesh* sMesh = &md->Submeshes[desc->SubMeshName];
+	MeshGeometry& md = render->mGeometrySystem->GetMeshGeomerty(desc->GeometryName);
+	Material& mat = render->mMaterialSystem->GetMaterial(desc->MaterialName);
+	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
+
 	RenderItem ritem;
 	ritem.WorldPos = Identity4x4();
 	ritem.ObjCBIndex = Objindex++;
-	ritem.MatCBIndex = mat->MatCBIndex;
-	ritem.texHeapIndex = mat->DiffuseSrvHeapIndex;
-	ritem.GeoIndex = md->GeometryIndex;
+	ritem.MatCBIndex = mat.MatCBIndex;
+	ritem.texHeapIndex = mat.DiffuseSrvHeapIndex;
+	ritem.GeoIndex = md.GeometryIndex;
 	ritem.PrimitiveType = desc->PrimitiveType;
-	ritem.IndexCount = sMesh->IndexCount;
-	ritem.StartIndexLocation = sMesh->StartIndexLocation;
-	ritem.baseVertexLocation = sMesh->BaseVertexLocation;
+	ritem.IndexCount = sMesh.IndexCount;
+	ritem.StartIndexLocation = sMesh.StartIndexLocation;
+	ritem.baseVertexLocation = sMesh.BaseVertexLocation;
 
 	RenderComponent& rComp = eManger->mRenderData[eId];
 	rComp.PrimitiveType = ritem.PrimitiveType;

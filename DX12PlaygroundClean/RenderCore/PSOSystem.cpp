@@ -1,20 +1,21 @@
 #include "PSOSystem.h"
 
-PSOSystem::PSOSystem(DX12Context* context, ShaderSystem* shaderSystem)
+PSOSystem::PSOSystem(DX12Context* context, ShaderSystem* shaderSystem, ID3D12RootSignature* RootSignature)
 {
 	mDXContext = context;
 	mShaderSystem = shaderSystem;
+	mRootSignature = RootSignature;
 }
 
-void PSOSystem::BuildPSO(std::string& name, std::string& VSName,
-	std::string& PSName, PSOOptions& options)
+void PSOSystem::BuildPSO(std::string name, std::string VSName,
+	std::string PSName, PSOOptions& options)
 {
 	Shader VS = mShaderSystem->GetShader(VSName);
 	Shader PS = mShaderSystem->GetShader(PSName);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = options.Layout;
-	psoDesc.pRootSignature = options.Signature;
+	psoDesc.pRootSignature = mRootSignature;
 	psoDesc.VS =
 	{
 		VS.ShaderBlob->GetBufferPointer(),
@@ -49,6 +50,8 @@ void PSOSystem::ReloadPSO(std::string name)
 {
 	PSO& pso = mPSOs[name];
 	pso.PSOData->Release();
+	mShaderSystem->ReloadShader(pso.VSName);
+	mShaderSystem->ReloadShader(pso.PSName);
 	BuildPSO(name, pso.VSName, pso.PSName, pso.options);
 }
 

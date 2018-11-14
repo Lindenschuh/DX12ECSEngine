@@ -1,29 +1,29 @@
 #include "RenderSystem.h"
 
-RenderSystem::RenderSystem(EntityManger * manager, DX12Render * render)
+RenderSystem::RenderSystem(EntityManger * manager, DX12Renderer * render)
 {
 	eManager = manager;
 	renderer = render;
 }
 
-void RenderSystem::SetRenderer(DX12Render * ren)
+void RenderSystem::SetRenderer(DX12Renderer * ren)
 {
 	renderer = ren;
 }
 
-Material * RenderSystem::GetMaterial(EntityID id)
+Material* RenderSystem::GetMaterial(EntityID id)
 {
-	return &renderer->mAllMaterials[eManager->mRenderData[id].MatCBIndex];
+	return &renderer->mMaterialSystem->GetMaterial(eManager->mRenderData[id].MatCBIndex);
 }
 
-MeshGeometry * RenderSystem::GetGeometry(EntityID id)
+MeshGeometry* RenderSystem::GetGeometry(EntityID id)
 {
-	return &renderer->mAllGeometry[eManager->mRenderData[id].GeoIndex];
+	return &renderer->mGeometrySystem->GetMeshGeomerty(eManager->mRenderData[id].GeoIndex);
 }
 
-FrameResource * RenderSystem::GetCurrentFrameResource()
+FrameResource* RenderSystem::GetCurrentFrameResource()
 {
-	return renderer->mCurrentFrameResource;
+	return &renderer->mFrameResourceSystem->GetCurrentFrameResource();
 }
 
 void RenderSystem::UpdateSystem(float time, float deltaTime)
@@ -87,7 +87,7 @@ void DebugWindowSystem::UpdateSystem(float time, float deltaTime)
 	}
 }
 
-CameraSystem::CameraSystem(EntityManger * eManager, DX12Render* ren)
+CameraSystem::CameraSystem(EntityManger * eManager, DX12Renderer* ren)
 {
 	mEManager = eManager;
 	renderer = ren;
@@ -142,79 +142,6 @@ void CameraSystem::UpdateSystem(float time, float deltaTime)
 		XMStoreFloat4x4(&mEManager->mCameras[eId].ViewMat, view);
 		if (&mEManager->mCameras[eId].isMain)
 			renderer->SetMainCamera(eyePos, mEManager->mCameras[eId].ViewMat);
-	}
-}
-
-WaterAnimationSystem::WaterAnimationSystem(EntityManger * eManager, Waves * waves, RenderSystem* rs)
-{
-	mEManager = eManager;
-	mWaves = waves;
-	mRs = rs;
-}
-
-void WaterAnimationSystem::AddToSystem(EntityID id)
-{
-	entities.emplace_back(id);
-}
-
-void WaterAnimationSystem::UpdateSystem(float time, float deltaTime)
-{
-	for (int i = 0; i < entities.size(); i++)
-	{
-		EntityID eId = entities[i];
-		RenderComponent& rComp = mEManager->mRenderData[eId];
-		Material* mat = mRs->GetMaterial(eId);
-		MeshGeometry* msGeo = mRs->GetGeometry(eId);
-		FrameResource* currFrameRes = mRs->GetCurrentFrameResource();
-
-		if ((time - baseTime) >= 0.25f)
-		{
-			baseTime += 0.25f;
-
-			int i = Rand(4, mWaves->RowCount() - 5);
-			int j = Rand(4, mWaves->ColumnCount() - 5);
-
-			float r = RandF(0.2f, 0.5f);
-
-			mWaves->Disturb(i, j, r);
-		}
-
-		// Update the wave simulation.
-		mWaves->Update(deltaTime);
-
-		// Update the wave vertex buffer with the new solution.
-		for (int i = 0; i < mWaves->VertexCount(); ++i)
-		{
-			Vertex v;
-
-			v.Pos = mWaves->mCurrSolution[i];
-			v.Normal = mWaves->mNormals[i];
-
-			v.TexC.x = 0.5f + v.Pos.x / mWaves->Width();
-			v.TexC.y = 0.5f - v.Pos.z / mWaves->Depth();
-
-			currFrameRes->WavesVB->CopyData(i, v);
-		}
-
-		// Set the dynamic VB of the wave render item to the current frame VB.
-		msGeo->VertexBufferGPU = currFrameRes->WavesVB->Resource();
-
-		XMFLOAT4X4 matMat = mat->MatTransform;
-		float& tu = matMat(3, 0);
-		float& tv = matMat(3, 1);
-
-		tu += 0.1f * deltaTime;
-		tv += 0.02f * deltaTime;
-
-		if (tu >= 1.0f)
-			tu -= 1.0f;
-
-		if (tv >= 1.0f)
-			tv -= 1.0f;
-
-		matMat(3, 0) = tu;
-		matMat(3, 1) = tv;
-		mat->setTransformMat(matMat);
 	}
 }
 

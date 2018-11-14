@@ -48,9 +48,6 @@
     <ClCompile Include="RenderCore\FrameResource.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="RenderCore\InitDX.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="RenderCore\DXHelpers.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -79,6 +76,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="RenderCore\FrameResourceSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderCore\DX12Renderer.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
@@ -125,9 +125,6 @@
     <ClInclude Include="RenderCore\FrameResource.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="RenderCore\InitDX.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="RenderCore\DXHelpers.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -167,5 +164,11 @@
     <ClInclude Include="RenderCore\FrameResourceSystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="RenderCore\DX12Renderer.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

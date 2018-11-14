@@ -197,29 +197,6 @@ struct PassConstants
 	Light Lights[MaxLights];
 };
 
-void static UpdateMaterialCBs(std::vector<Material>& allMaterials,
-	UploadBuffer<MaterialConstants>* currMat)
-{
-	for (int i = 0; i < allMaterials.size(); i++)
-	{
-		Material* mat = &allMaterials[i];
-
-		if (mat->NumFramesDirty > 0)
-		{
-			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
-
-			MaterialConstants matConst;
-			matConst.DiffuseAlbedo = mat->DiffuseAlbedo;
-			matConst.FresnelR0 = mat->FresnelR0;
-			matConst.Roughness = mat->Roughness;
-			XMStoreFloat4x4(&matConst.MatTransform, XMMatrixTranspose(matTransform));
-			currMat->CopyData(mat->MatCBIndex, matConst);
-
-			mat->NumFramesDirty--;
-		}
-	}
-}
-
 void static UpdateObjectPassCB(std::vector<RenderItem>& rItems,
 	UploadBuffer<ObjectConstants>* currentObjectCB)
 {
