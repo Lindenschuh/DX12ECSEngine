@@ -152,7 +152,7 @@ static void CreatePSO(DX12Renderer* ren)
 // 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 // 		sw.Stop();
 // 		ImGui::Begin("Timer");
-// 		ImGui::Text("Durschnittliche UpdateTime: %f", sw.GetDuration());
+// 		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration()* 1000.0f);
 // 		ImGui::End();
 // 		render->Update();
 // 		render->Draw();
@@ -226,12 +226,12 @@ int main()
 		{
 			AllGameObjects[i]->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		}
+		sw.Stop();
 
 		ImGui::Begin("Timer");
-		ImGui::Text("Durschnittliche UpdateTime: %f", sw.GetDuration());
+		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration() * 1000.0f);
 		ImGui::End();
 
-		sw.Stop();
 		render->Update();
 		render->Draw();
 	}
