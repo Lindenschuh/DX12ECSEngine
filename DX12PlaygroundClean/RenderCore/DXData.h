@@ -20,6 +20,13 @@ struct InstanceData
 	UINT InstancePad1;
 	UINT InstancePad2;
 };
+struct FogData
+{
+	XMFLOAT4 FogColor = { 0.0f,0.0f,0.0f,1.0f };
+	float FogStart = 0.0f;
+	float FogRange = 0.0f;
+	XMFLOAT2 padding = {};
+};
 
 struct MaterialData
 {
@@ -214,6 +221,8 @@ struct PassConstants
 
 	XMFLOAT4 AmbientLight = { 0.0f,0.0f,0.0f,1.0f };
 
+	FogData FogData = {};
+
 	Light Lights[MaxLights];
 };
 
@@ -241,7 +250,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>& rItems,
 
 void static UpdateMainPassCB(PassConstants& mainPassCB,
 	UploadBuffer<PassConstants>* passCB, Camera* mainCamera,
-	DX12Context* mDXCon, GameTimer* mTimer, XMFLOAT4X4 mProj)
+	DX12Context* mDXCon, GameTimer* mTimer, XMFLOAT4X4 mProj, FogData fogData)
 {
 	XMMATRIX view = XMLoadFloat4x4(&mainCamera->View);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
@@ -271,6 +280,7 @@ void static UpdateMainPassCB(PassConstants& mainPassCB,
 	mainPassCB.Lights[1].Strength = { 0.5f, 0.5f, 0.5f };
 	mainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
 	mainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+	mainPassCB.FogData = fogData;
 
 	passCB->CopyData(0, mainPassCB);
 }

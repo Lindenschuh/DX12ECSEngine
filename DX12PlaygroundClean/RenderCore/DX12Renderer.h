@@ -25,6 +25,7 @@ public:
 	void FinishSetup();
 	void AddRenderItem(std::string name, RenderItem r, RenderLayer rl);
 	void SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view);
+	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
 
 	RenderItem* GetRenderItem(std::string name);
 
@@ -42,6 +43,7 @@ private:
 	ComPtr<ID3D12RootSignature> mRootSignature;
 	DX12Context* mDXCon;
 
+	FogData mFogData;
 	Camera mMainCam;
 	XMFLOAT4X4 mProj = Identity4x4();
 	PassConstants mMainPassCB;

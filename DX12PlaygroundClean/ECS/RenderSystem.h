@@ -17,7 +17,7 @@ public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
-class GuiComponent
+class GuiSystem
 {
 public:
 	void UpdateSystem(float time, float deltaTime);

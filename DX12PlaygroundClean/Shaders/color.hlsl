@@ -28,8 +28,6 @@ struct InstanceData
 	uint     InstPad2;
 };
 
-
-
 struct MaterialData
 {
 	float4   DiffuseAlbedo;
@@ -47,16 +45,12 @@ Texture2D gDiffuseMap[3] : register(t0);
 StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
 StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
 
-
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
 SamplerState gsamLinearWrap       : register(s2);
 SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
-
-
-
 
 // Constant data that varies per material.
 cbuffer cbPass : register(b0)
@@ -77,13 +71,17 @@ cbuffer cbPass : register(b0)
 	float gDeltaTime;
 	float4 gAmbientLight;
 
+	float4 gFogColor;
+	float gFogStart;
+	float gFogRange;
+	float2 padding2;
+
 	// Indices [0, NUM_DIR_LIGHTS) are directional lights;
 	// indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
 	// indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
 	// are spot lights for a maximum of MaxLights per object.
 	Light gLights[MaxLights];
 };
-
 
 struct VertexIn
 {
@@ -118,7 +116,6 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 	float4 posW = mul(float4(vin.PosL, 1.0f), world);
 	vout.PosW = posW.xyz;
 
-
 	vout.NormalW = mul(vin.NormalL, (float3x3)world);
 
 	// Transform to homogeneous clip space.
@@ -146,7 +143,8 @@ float4 PS(VertexOut pin) : SV_Target
 	// Interpolating normal can unnormalize it, so renormalize it.
 	pin.NormalW = normalize(pin.NormalW);
 
-	// Vector from point being lit to eye. 
+    float distToEye = length(gEyePosW - pin.PosW);
+	// Vector from point being lit to eye.
 	float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
 	// Light terms.
@@ -160,10 +158,11 @@ float4 PS(VertexOut pin) : SV_Target
 
 	float4 litColor = ambient + directLight;
 
+    float4 fogAmount = saturate((distToEye - gFogStart) / gFogRange);
+    litColor = lerp(litColor, gFogColor, fogAmount);
+
 	// Common convention to take alpha from diffuse albedo.
 	litColor.a = diffuseAlbedo.a;
 
 	return litColor;
 }
-
-

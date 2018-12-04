@@ -124,6 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ECS\FogSystem.cpp" />
     <ClCompile Include="RenderCore\DX12Context.cpp" />
     <ClCompile Include="RenderCore\DXHelpers.cpp" />
     <ClCompile Include="ECS\RenderSystem.cpp" />
@@ -148,6 +149,8 @@
     <ClCompile Include="Util\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ECS\EnitityData.h" />
+    <ClInclude Include="ECS\FogSystem.h" />
     <ClInclude Include="RenderCore\Camera.h" />
     <ClInclude Include="Core\Default.h" />
     <ClInclude Include="RenderCore\DX12Context.h" />
@@ -179,6 +182,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\LightingUtil.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

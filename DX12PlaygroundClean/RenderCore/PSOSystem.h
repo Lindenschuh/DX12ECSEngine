@@ -2,6 +2,30 @@
 #include "../Core/Default.h"
 #include "DX12Context.h"
 #include "ShaderSystem.h"
+
+struct PSOBlendOptions
+{
+	D3D12_BLEND SrcBlend;
+	D3D12_BLEND DestBlend;
+	D3D12_BLEND_OP BlendOp;
+	D3D12_BLEND SrcBlendAlpha;
+	D3D12_BLEND DestBlendAlpha;
+	D3D12_BLEND_OP BlendOpAlpha;
+};
+static
+PSOBlendOptions
+DefaultPSOBlendOptions()
+{
+	return
+	{
+		D3D12_BLEND_SRC_ALPHA,
+		D3D12_BLEND_INV_SRC_ALPHA,
+		D3D12_BLEND_OP_ADD,
+		D3D12_BLEND_ONE,
+		D3D12_BLEND_ZERO,
+		D3D12_BLEND_OP_ADD
+	};
+}
 struct PSOOptions
 {
 	D3D12_INPUT_LAYOUT_DESC Layout;
@@ -44,6 +68,7 @@ private:
 public:
 	PSOSystem(DX12Context* Context, ShaderSystem* shaderSystem, ID3D12RootSignature* RootSignature);
 	void BuildPSO(std::string name, std::string VSName, std::string PSName, PSOOptions& options);
+	void BuildBlendablePSO(std::string name, std::string VSName, std::string PSName, PSOOptions& options, PSOBlendOptions& blendOptions);
 	void ReloadPSO(std::string name);
 	PSO& GetPSO(std::string name);
 	~PSOSystem();

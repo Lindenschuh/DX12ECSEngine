@@ -53,6 +53,13 @@ SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view)
 	mMainCam.View = view;
 }
 
+void DX12Renderer::SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange)
+{
+	mFogData.FogColor = fogColor;
+	mFogData.FogStart = fogStart;
+	mFogData.FogRange = fogRange;
+}
+
 RenderItem * DX12Renderer::GetRenderItem(std::string name)
 {
 	std::pair<RenderLayer, u32> renderPair = mRenderItemPair[name];
@@ -147,7 +154,7 @@ void DX12Renderer::Update()
 	}
 
 	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialBuffer);
-	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, &mMainCam, mDXCon, mTimer, mProj);
+	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, &mMainCam, mDXCon, mTimer, mProj, mFogData);
 }
 
 void DX12Renderer::ProcessGlobalEvents()

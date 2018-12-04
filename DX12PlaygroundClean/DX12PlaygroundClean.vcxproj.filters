@@ -81,6 +81,9 @@
     <ClCompile Include="RenderCore\DX12Renderer.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="ECS\FogSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ext\d3dx12.h">
@@ -167,8 +170,18 @@
     <ClInclude Include="RenderCore\DX12Renderer.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="ECS\FogSystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\EnitityData.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl" />
+    <FxCompile Include="Shaders\LightingUtil.hlsl" />
   </ItemGroup>
 </Project>

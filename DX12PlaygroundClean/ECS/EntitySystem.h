@@ -1,45 +1,6 @@
 #pragma once
 
-#include "..\Core\Default.h"
-#include "..\RenderCore\DXData.h"
-
-typedef u32 EntityID;
-
-struct PositionComponent
-{
-	XMFLOAT3 Position;
-};
-struct CameraComponent
-{
-	bool isMain = true;
-	XMFLOAT4X4 ViewMat = Identity4x4();
-};
-
-struct VelocityComponent
-{
-	XMFLOAT3 Velocity;
-
-	void Init(float minSpeed, float maxSpeed)
-	{
-		// random angle
-		float angle = RandomFloat01() * 3.1415926f * 2;
-		// random movement speed between given min & max
-		float speed = RandomFloat(minSpeed, maxSpeed);
-		// velocity x & y components
-		Velocity.x = cosf(angle) * speed;
-		Velocity.z = sinf(angle) * speed;
-		Velocity.y = tanf(angle) * speed;
-	}
-};
-struct RenderComponent
-{
-	RenderLayer layer = RenderLayer::Opaque;
-	XMFLOAT4X4 textureTransform = Identity4x4();
-	u32 renderItemID = -1;
-	GeometryID GeoIndex = -1;
-	u32 instanceID = -1;
-	MaterialID MatCBIndex = -1;
-};
+#include "EnitityData.h"
 
 struct EntityManger
 {
@@ -49,6 +10,7 @@ struct EntityManger
 		FlagRenderData = 1 << 1,
 		FlagCamera = 1 << 2,
 		FlagVeloctiy = 1 << 3,
+		FlagFog = 1 << 4,
 	};
 	std::vector<std::string> mNames;
 	//Data
@@ -56,7 +18,7 @@ struct EntityManger
 	std::vector<RenderComponent> mRenderData;
 	std::vector<CameraComponent> mCameras;
 	std::vector<VelocityComponent> mVelocitys;
-
+	std::vector<FogComponent> mFogs;
 	//Flags for has it
 	std::vector<u32> mFlags;
 
@@ -68,6 +30,7 @@ struct EntityManger
 		mCameras.reserve(n);
 		mVelocitys.reserve(n);
 		mFlags.reserve(n);
+		mFogs.reserve(n);
 	}
 
 	EntityID addEntity(const std::string&& name)
@@ -78,7 +41,8 @@ struct EntityManger
 		mRenderData.push_back(RenderComponent());
 		mCameras.push_back(CameraComponent());
 		mVelocitys.push_back(VelocityComponent());
-		mFlags.push_back(0);
+		mFlags.push_back(FlagPosition);
+		mFogs.push_back(FogComponent());
 		return id;
 	}
 };

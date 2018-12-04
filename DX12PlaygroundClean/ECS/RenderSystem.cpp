@@ -46,7 +46,7 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 	}
 }
 
-void GuiComponent::UpdateSystem(float time, float deltaTime)
+void GuiSystem::UpdateSystem(float time, float deltaTime)
 {
 	ImGui_ImplWin32_NewFrame();
 	ImGui_ImplDX12_NewFrame();
@@ -93,6 +93,7 @@ CameraSystem::CameraSystem(EntityManger * eManager, DX12Renderer* ren)
 void CameraSystem::AddObjectToSystem(EntityID id)
 {
 	entities.emplace_back(id);
+	mEManager->mFlags[id] |= mEManager->FlagCamera;
 }
 
 void CameraSystem::UpdateSystem(float time, float deltaTime)
@@ -199,6 +200,7 @@ GlobalMovement::GlobalMovement(EntityManger * eManager)
 void GlobalMovement::AddToSystem(EntityID eId)
 {
 	entities.emplace_back(eId);
+	mEManager->mFlags[eId] |= mEManager->FlagVeloctiy;
 }
 
 void GlobalMovement::UpdateSystem(float time, float deltaTime)
