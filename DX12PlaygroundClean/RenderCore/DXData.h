@@ -8,6 +8,8 @@
 enum RenderLayer
 {
 	Opaque = 0,
+	AlphaTest = 1,
+	Transparent = 2,
 	Count
 };
 
@@ -226,24 +228,28 @@ struct PassConstants
 	Light Lights[MaxLights];
 };
 
-void static UpdateObjectPassCB(std::vector<RenderItem>& rItems,
+void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 	UploadBuffer<InstanceData>* currentInstanceBuffer)
 {
-	for (int i = 0; i < rItems.size(); i++)
+	u32 instanceCount = 0;
+	for (int lay = 0; lay < RenderLayer::Count; lay++)
 	{
-		u32 instanceCount = 0;
-		RenderItem& rItem = rItems[i];
-
-		for (int j = 0; j < rItem.Instances.size(); j++)
+		std::vector<RenderItem>& rItems = allRItems[lay];
+		for (int i = 0; i < rItems.size(); i++)
 		{
-			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
+			RenderItem& rItem = rItems[i];
 
-			InstanceData data;
-			XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
-			data.MaterialIndex = rItem.Instances[j].MaterialIndex;
-			currentInstanceBuffer->CopyData(instanceCount++, data);
+			for (int j = 0; j < rItem.Instances.size(); j++)
+			{
+				XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
+
+				InstanceData data;
+				XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
+				data.MaterialIndex = rItem.Instances[j].MaterialIndex;
+				currentInstanceBuffer->CopyData(instanceCount++, data);
+			}
 		}
 	}
 }

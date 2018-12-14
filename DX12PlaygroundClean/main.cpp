@@ -4,7 +4,11 @@
 #include "ECS/RenderSystem.h"
 #include "Util/GeometryGenerator.h"
 #include "ECS/FogSystem.h"
-
+/*
+	ToDo für morgen
+	- ConstandBuffer für offsets einrichten also per Instance Call
+	- Hoffen das es geht und Nächstes kapittel lesen
+*/
 static float GetHillsHeight(float x, float z)
 {
 	return 0.3f*(z*sinf(0.1f*x) + x * cosf(0.1f*z));
@@ -26,9 +30,9 @@ static XMFLOAT3 GetHillsNormal(float x, float z)
 
 static void loadTextures(TextureSystem* system)
 {
-	system->LoadTexture("grassTex", L"Textures/grass.dds", DefaultTextureOptions());
+	system->LoadTexture("crateTex", L"Textures/WoodCrate01.dds", DefaultTextureOptions());
 	system->LoadTexture("waterTex", L"Textures/water1.dds", DefaultTextureOptions());
-	system->LoadTexture("fenceTex", L"Textures/WoodCrate01.dds", DefaultTextureOptions());
+	system->LoadTexture("fenceTex", L"Textures/WireFence.dds", DefaultTextureOptions());
 }
 
 static void buildBoxGeo(GeometrySystem* system)
@@ -62,12 +66,11 @@ static void buildBoxGeo(GeometrySystem* system)
 
 static void buildMaterials(MaterialSystem* system)
 {
-	MaterialConstants grass;
-	//"grass";
-	grass.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	grass.FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	grass.Roughness = 0.125f;
-	system->BuildMaterial("grass", 0, grass);
+	MaterialConstants crate;
+	crate.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	crate.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	crate.Roughness = 0.25f;
+	system->BuildMaterial("crate", 0, crate);
 
 	MaterialConstants water;
 	water.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -84,10 +87,34 @@ static void buildMaterials(MaterialSystem* system)
 
 static void CreatePSO(DX12Renderer* ren)
 {
+	const D3D_SHADER_MACRO defines[] =
+	{
+		"FOG", "1",
+		NULL,NULL
+	};
+
+	const D3D_SHADER_MACRO alphaTestDefines[] =
+	{
+		"FOG", "1",
+		"ALPHA_TEST", "1",
+		NULL,NULL
+	};
 	ren->mShaderSystem->LoadShader("standardVS", L"Shaders\\color.hlsl", VertexShader);
-	ren->mShaderSystem->LoadShader("opaquePS", L"Shaders\\color.hlsl", PixelShader);
-	ren->mPSOSystem->BuildBlendablePSO("opaque", "standardVS", "opaquePS", DefaultPSOOptions(),
+	ren->mShaderSystem->LoadShader("opaquePS", L"Shaders\\color.hlsl", PixelShader, defines);
+	ren->mShaderSystem->LoadShader("alphaTestPS", L"Shaders\\color.hlsl", PixelShader, alphaTestDefines);
+
+	PSOOptions AlphaTestOptions = DefaultPSOOptions();
+	AlphaTestOptions.CullMode = D3D12_CULL_MODE_NONE;
+
+	ren->mPSOSystem->BuildPSO("opaque", "standardVS", "opaquePS", DefaultPSOOptions());
+	ren->mPSOSystem->BuildBlendablePSO("transparent", "standardVS", "opaquePS", DefaultPSOOptions(),
 		DefaultPSOBlendOptions());
+	ren->mPSOSystem->BuildBlendablePSO("alphaTest", "standardVS", "alphaTestPS", AlphaTestOptions,
+		DefaultPSOBlendOptions());
+
+	ren->SetLayerPSO("transparent", RenderLayer::Opaque);
+	ren->SetLayerPSO("transparent", RenderLayer::Transparent);
+	ren->SetLayerPSO("alphaTest", RenderLayer::AlphaTest);
 }
 
 //ECS
@@ -113,7 +140,7 @@ int main()
 	float maxSpeed = 8;
 	float minSpeed = 3;
 
-	for (int i = 0; i < boxCount; i++)
+	for (int i = 0; i < boxCount / 2; i++)
 	{
 		EntityID eId = gObjects.addEntity("box");
 		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
@@ -130,10 +157,33 @@ int main()
 		desc.MaterialName = "wirefence";
 		desc.SubMeshName = "box";
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::Opaque;
-		CreateRenderItem(&desc, render, i, &gObjects);
+		desc.Layer = RenderLayer::AlphaTest;
+		CreateRenderItem(&desc, render, eId, &gObjects);
 		globalMovement.AddToSystem(eId);
 	}
+
+	for (int i = 0; i < boxCount / 2; i++)
+	{
+		EntityID eId = gObjects.addEntity("box");
+		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
+		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
+		if (width > maxWidth)
+		{
+			width = 0;
+			height += 10;
+		}
+		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
+		width += 10;
+		RenderItemDesc desc;
+		desc.GeometryName = "boxGeo";
+		desc.MaterialName = "crate";
+		desc.SubMeshName = "box";
+		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		desc.Layer = RenderLayer::Opaque;
+		CreateRenderItem(&desc, render, eId, &gObjects);
+		globalMovement.AddToSystem(eId);
+	}
+
 	render->FinishSetup();
 
 	EntityID cameraId = gObjects.addEntity("camera");

@@ -27,9 +27,13 @@ void DX12Renderer::FinishSetup()
 {
 	mTextureSystem->UploadTextures();
 	u32 instanceCount = 0;
-	for (int i = 0; i < mRItems[Opaque].size(); i++)
+	for (int i = 0; i < RenderLayer::Count; i++)
 	{
-		instanceCount += mRItems[Opaque][i].Instances.size();
+		ObjectOffsetPerLayer[i] = instanceCount;
+		for (int j = 0; j < mRItems[i].size(); j++)
+		{
+			instanceCount += mRItems[i][j].Instances.size();
+		}
 	}
 
 	mFrameResourceSystem = new FrameResourceSystem(gNumFrameResources, mDXCon, 1,
@@ -58,6 +62,16 @@ void DX12Renderer::SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange)
 	mFogData.FogColor = fogColor;
 	mFogData.FogStart = fogStart;
 	mFogData.FogRange = fogRange;
+}
+
+void DX12Renderer::SetLayerPSO(std::string psoName, RenderLayer layer)
+{
+	LayerPSO[layer] = psoName;
+}
+
+std::string DX12Renderer::GetLayerPSO(RenderLayer layer)
+{
+	return LayerPSO[layer];
 }
 
 RenderItem * DX12Renderer::GetRenderItem(std::string name)
@@ -96,7 +110,7 @@ void DX12Renderer::Draw()
 
 	HR(cmdListAlloc->Reset());
 
-	HR(mDXCon->mCmdList->Reset(cmdListAlloc.Get(), mPSOSystem->GetPSO("opaque").PSOData.Get()));
+	HR(mDXCon->mCmdList->Reset(cmdListAlloc.Get(), mPSOSystem->GetPSO(LayerPSO[RenderLayer::Opaque]).PSOData.Get()));
 
 	mDXCon->mCmdList->RSSetViewports(1, &mDXCon->mViewPort);
 	mDXCon->mCmdList->RSSetScissorRects(1, &mDXCon->mScissorRect);
@@ -104,7 +118,7 @@ void DX12Renderer::Draw()
 	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackbuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	mDXCon->mCmdList->ClearRenderTargetView(CurrentbackBufferView(), Colors::LightCyan, 0, nullptr);
+	mDXCon->mCmdList->ClearRenderTargetView(CurrentbackBufferView(), (float*)&mFogData.FogColor, 0, nullptr);
 	mDXCon->mCmdList->ClearDepthStencilView(DepthStencilView(),
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	mDXCon->mCmdList->OMSetRenderTargets(1, &CurrentbackBufferView(), true, &DepthStencilView());
@@ -122,7 +136,13 @@ void DX12Renderer::Draw()
 
 	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
 
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque]);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], ObjectOffsetPerLayer[RenderLayer::Opaque]);
+
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::AlphaTest]).PSOData.Get());
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::AlphaTest], ObjectOffsetPerLayer[RenderLayer::AlphaTest]);
+
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Transparent]).PSOData.Get());
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Transparent], ObjectOffsetPerLayer[RenderLayer::Transparent]);
 
 	mDXCon->mCmdList->SetDescriptorHeaps(1, mDXCon->mSRVHeap.GetAddressOf());
 	ImGui::Render();
@@ -148,10 +168,8 @@ void DX12Renderer::Update()
 {
 	mFrameResourceSystem->SwitchFrameResource();
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
-	for (u32 i = 0; i < RenderLayer::Count; i++)
-	{
-		UpdateObjectPassCB(mRItems[i], currentFrameResource.InstanceBuffer);
-	}
+
+	UpdateObjectPassCB(mRItems, currentFrameResource.InstanceBuffer);
 
 	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialBuffer);
 	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, &mMainCam, mDXCon, mTimer, mProj, mFogData);
@@ -205,10 +223,12 @@ void DX12Renderer::BuildRootSignature()
 	));
 }
 
-void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vector<RenderItem>& rItems)
+void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>&rItems, u32 passOffset)
 {
 	FrameResource mCurrentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 
+	u32 instanceSize = sizeof(InstanceData);
+	u32 instanceCount = 0;
 	for (int i = 0; i < rItems.size(); i++)
 	{
 		RenderItem& ri = rItems[i];
@@ -219,8 +239,11 @@ void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList * cmdList, std::vec
 		cmdList->IASetPrimitiveTopology(ri.PrimitiveType);
 
 		auto instanceBuffer = mCurrentFrameResource.InstanceBuffer->Resource();
-		cmdList->SetGraphicsRootShaderResourceView(0, instanceBuffer->GetGPUVirtualAddress());
+		D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddress = instanceBuffer->GetGPUVirtualAddress() + instanceSize * (passOffset + instanceCount);
+
+		cmdList->SetGraphicsRootShaderResourceView(0, instanceBufferAddress);
 		cmdList->DrawIndexedInstanced(ri.IndexCount, ri.Instances.size(), ri.StartIndexLocation, ri.baseVertexLocation, 0);
+		instanceCount += ri.Instances.size();
 	}
 }
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentbackBufferView()

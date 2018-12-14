@@ -11,6 +11,7 @@ struct Shader
 {
 	ShaderType Type;
 	std::wstring Path;
+	const D3D_SHADER_MACRO* macros;
 	ComPtr<ID3DBlob> ShaderBlob;
 };
 
@@ -21,7 +22,7 @@ private:
 	DX12Context* mDXContext;
 public:
 	ShaderSystem(DX12Context* DXContext);
-	void LoadShader(std::string name, std::wstring path, ShaderType type);
+	void LoadShader(std::string name, std::wstring path, ShaderType type, const D3D_SHADER_MACRO* macro = nullptr);
 	Shader& GetShader(std::string name);
 	void ReloadShader(std::string name);
 	std::pair<const char*, const char*> ResolveShaderType(ShaderType type);

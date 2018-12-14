@@ -30,6 +30,7 @@ struct PSOOptions
 {
 	D3D12_INPUT_LAYOUT_DESC Layout;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
+	D3D12_CULL_MODE CullMode;
 	u32 SampleMask;
 };
 
@@ -46,6 +47,7 @@ DefaultPSOOptions()
 	{
 		{gInputLayout,3 },
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+		D3D12_CULL_MODE_BACK,
 		UINT_MAX
 	};
 }

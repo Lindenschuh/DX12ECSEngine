@@ -18,6 +18,7 @@
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
 
+
 struct InstanceData
 {
 	float4x4 World;
@@ -52,7 +53,8 @@ SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
 
-// Constant data that varies per material.
+
+
 cbuffer cbPass : register(b0)
 {
 	float4x4 gView;
@@ -105,7 +107,7 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 	VertexOut vout = (VertexOut)0.0f;
 
 	// Transform to world space.
-	InstanceData instData = gInstanceData[instanceID];
+    InstanceData instData = gInstanceData[instanceID];
 	float4x4 world = instData.World;
 	float4x4 texTransform = instData.TexTransform;
 	uint matIndex = instData.MaterialIndex;
@@ -133,6 +135,11 @@ float4 PS(VertexOut pin) : SV_Target
 	// Fetch the material data.
 	MaterialData matData = gMaterialData[pin.MatIndex];
 	float4 diffuseAlbedo = matData.DiffuseAlbedo;
+
+#ifdef ALPHA_TEST
+    clip(diffuseAlbedo.a - 0.1f);
+#endif
+
 	float3 fresnelR0 = matData.FresnelR0;
 	float  roughness = matData.Roughness;
 	uint diffuseTexIndex = matData.DiffuseMapIndex;
@@ -143,7 +150,6 @@ float4 PS(VertexOut pin) : SV_Target
 	// Interpolating normal can unnormalize it, so renormalize it.
 	pin.NormalW = normalize(pin.NormalW);
 
-    float distToEye = length(gEyePosW - pin.PosW);
 	// Vector from point being lit to eye.
 	float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
@@ -158,9 +164,11 @@ float4 PS(VertexOut pin) : SV_Target
 
 	float4 litColor = ambient + directLight;
 
+#ifdef FOG
+    float distToEye = length(gEyePosW - pin.PosW);
     float4 fogAmount = saturate((distToEye - gFogStart) / gFogRange);
     litColor = lerp(litColor, gFogColor, fogAmount);
-
+#endif
 	// Common convention to take alpha from diffuse albedo.
 	litColor.a = diffuseAlbedo.a;
 

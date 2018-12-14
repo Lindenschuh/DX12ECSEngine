@@ -27,6 +27,9 @@ public:
 	void SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view);
 	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
 
+	void SetLayerPSO(std::string psoName, RenderLayer layer);
+	std::string GetLayerPSO(RenderLayer layer);
+
 	RenderItem* GetRenderItem(std::string name);
 
 	std::vector<RenderItem> mRItems[RenderLayer::Count];
@@ -42,11 +45,12 @@ private:
 	std::unordered_map<std::string, std::pair<RenderLayer, u32>> mRenderItemPair;
 	ComPtr<ID3D12RootSignature> mRootSignature;
 	DX12Context* mDXCon;
-
+	std::string LayerPSO[RenderLayer::Count];
 	FogData mFogData;
 	Camera mMainCam;
 	XMFLOAT4X4 mProj = Identity4x4();
 	PassConstants mMainPassCB;
+	u32 ObjectOffsetPerLayer[RenderLayer::Count];
 
 	//Methods
 private:
@@ -58,5 +62,6 @@ private:
 	void CalculateFrameStats();
 	void BuildRootSignature();
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList,
-		std::vector<RenderItem>&rItems);
+
+		std::vector<RenderItem>&rItems, u32 offset);
 };

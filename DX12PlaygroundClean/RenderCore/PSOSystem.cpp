@@ -37,6 +37,8 @@ void PSOSystem::BuildPSO(std::string name, std::string VSName,
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = mDXContext->mDepthStencilFormat;
 
+	psoDesc.RasterizerState.CullMode = options.CullMode;
+
 	PSO pso = {};
 	pso.options = options;
 	pso.PSName = PSName;
@@ -87,6 +89,7 @@ void PSOSystem::BuildBlendablePSO(std::string name, std::string VSName, std::str
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = mDXContext->mDepthStencilFormat;
+	psoDesc.RasterizerState.CullMode = options.CullMode;
 
 	PSO pso = {};
 	pso.options = options;

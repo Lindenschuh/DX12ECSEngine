@@ -6,14 +6,16 @@ ShaderSystem::ShaderSystem(DX12Context * DXContext)
 	mDXContext = DXContext;
 }
 
-void ShaderSystem::LoadShader(std::string name, std::wstring path, ShaderType type)
+void ShaderSystem::LoadShader(std::string name, std::wstring path, ShaderType type,
+	const D3D_SHADER_MACRO * macros)
 {
 	std::pair<const char*, const char*> typeOptions = ResolveShaderType(type);
 
 	Shader shader = {};
 	shader.Path = path;
 	shader.Type = type;
-	shader.ShaderBlob = CompileShader(path.c_str(), nullptr,
+	shader.macros = macros;
+	shader.ShaderBlob = CompileShader(path.c_str(), macros,
 		typeOptions.first, typeOptions.second);
 	mShaders[name] = shader;
 }
