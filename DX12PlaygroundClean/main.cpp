@@ -4,11 +4,10 @@
 #include "ECS/RenderSystem.h"
 #include "Util/GeometryGenerator.h"
 #include "ECS/FogSystem.h"
-/*
-	ToDo für morgen
-	- ConstandBuffer für offsets einrichten also per Instance Call
-	- Hoffen das es geht und Nächstes kapittel lesen
-*/
+#include "ECS/CameraSystem.h"
+#include "ECS/PositionSystem.h"
+#include "ECS/ControllSystem.h"
+
 static float GetHillsHeight(float x, float z)
 {
 	return 0.3f*(z*sinf(0.1f*x) + x * cosf(0.1f*z));
@@ -104,13 +103,10 @@ static void CreatePSO(DX12Renderer* ren)
 	ren->mShaderSystem->LoadShader("alphaTestPS", L"Shaders\\color.hlsl", PixelShader, alphaTestDefines);
 
 	PSOOptions AlphaTestOptions = DefaultPSOOptions();
-	AlphaTestOptions.CullMode = D3D12_CULL_MODE_NONE;
 
 	ren->mPSOSystem->BuildPSO("opaque", "standardVS", "opaquePS", DefaultPSOOptions());
-	ren->mPSOSystem->BuildBlendablePSO("transparent", "standardVS", "opaquePS", DefaultPSOOptions(),
-		DefaultPSOBlendOptions());
-	ren->mPSOSystem->BuildBlendablePSO("alphaTest", "standardVS", "alphaTestPS", AlphaTestOptions,
-		DefaultPSOBlendOptions());
+	ren->mPSOSystem->BuildTransparentPSO("transparent", "standardVS", "opaquePS", DefaultPSOOptions());
+	ren->mPSOSystem->BuildTransparentPSO("alphaTest", "standardVS", "alphaTestPS", DefaultPSOOptions());
 
 	ren->SetLayerPSO("transparent", RenderLayer::Opaque);
 	ren->SetLayerPSO("transparent", RenderLayer::Transparent);
@@ -120,18 +116,19 @@ static void CreatePSO(DX12Renderer* ren)
 //ECS
 int main()
 {
-	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow");
+	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow", &gObjects);
 
 	buildBoxGeo(render->mGeometrySystem);
 	loadTextures(render->mTextureSystem);
 	buildMaterials(render->mMaterialSystem);
 	CreatePSO(render);
 
+	PositionSystem PosSystem(&gObjects);
 	GlobalMovement globalMovement(&gObjects);
-	CameraSystem cameraSystem(&gObjects, render);
 	GuiSystem guiSystem;
 	RenderSystem renderSystem(&gObjects, render);
 	FogSystem fogSystem(&gObjects, render);
+	ControllSystem ConSystem(&gObjects, &PosSystem);
 
 	int boxCount = 1000;
 	int maxWidth = (boxCount / 100);
@@ -184,10 +181,11 @@ int main()
 		globalMovement.AddToSystem(eId);
 	}
 
-	render->FinishSetup();
-
 	EntityID cameraId = gObjects.addEntity("camera");
-	cameraSystem.AddObjectToSystem(cameraId);
+	render->mCameraSystem->AddObjectToSystem(cameraId);
+	ConSystem.AddToSystem(cameraId);
+
+	render->FinishSetup();
 
 	EntityID fogId = gObjects.addEntity("Fog");
 	fogSystem.AddEntity(fogId);
@@ -197,11 +195,12 @@ int main()
 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
 		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		cameraSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+
+		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
-		render->Update();
+		render->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		render->Draw();
 	}
 

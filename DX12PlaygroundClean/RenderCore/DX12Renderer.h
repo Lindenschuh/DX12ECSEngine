@@ -11,20 +11,19 @@
 
 #include "DXHelpers.h"
 #include "DXData.h"
-#include "Camera.h"
 #include "DX12Context.h"
+#include "..\ECS\CameraSystem.h"
 
 class DX12Renderer
 {
 public:
-	DX12Renderer(u32 width, u32 height, const char* windowName);
+	DX12Renderer(u32 width, u32 height, const char* windowName, EntityManger* eManager);
 	GameTimer* mTimer;
 	bool IsWindowActive(void);
 	void Draw();
-	void Update();
+	void Update(float time, float deltaTime);
 	void FinishSetup();
 	void AddRenderItem(std::string name, RenderItem r, RenderLayer rl);
-	void SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view);
 	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
 
 	void SetLayerPSO(std::string psoName, RenderLayer layer);
@@ -40,15 +39,13 @@ public:
 	ShaderSystem* mShaderSystem;
 	PSOSystem* mPSOSystem;
 	FrameResourceSystem* mFrameResourceSystem;
-
+	CameraSystem* mCameraSystem;
 private:
 	std::unordered_map<std::string, std::pair<RenderLayer, u32>> mRenderItemPair;
 	ComPtr<ID3D12RootSignature> mRootSignature;
 	DX12Context* mDXCon;
 	std::string LayerPSO[RenderLayer::Count];
 	FogData mFogData;
-	Camera mMainCam;
-	XMFLOAT4X4 mProj = Identity4x4();
 	PassConstants mMainPassCB;
 	u32 ObjectOffsetPerLayer[RenderLayer::Count];
 

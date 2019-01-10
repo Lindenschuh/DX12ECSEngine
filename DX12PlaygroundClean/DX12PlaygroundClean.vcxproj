@@ -124,7 +124,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ECS\CameraSystem.cpp" />
+    <ClCompile Include="ECS\ControllSystem.cpp" />
     <ClCompile Include="ECS\FogSystem.cpp" />
+    <ClCompile Include="ECS\PositionSystem.cpp" />
     <ClCompile Include="RenderCore\DX12Context.cpp" />
     <ClCompile Include="RenderCore\DXHelpers.cpp" />
     <ClCompile Include="ECS\RenderSystem.cpp" />
@@ -149,11 +152,14 @@
     <ClCompile Include="Util\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ECS\CameraSystem.h" />
+    <ClInclude Include="ECS\ControllSystem.h" />
     <ClInclude Include="ECS\EnitityData.h" />
     <ClInclude Include="ECS\FogSystem.h" />
-    <ClInclude Include="RenderCore\Camera.h" />
+    <ClInclude Include="ECS\PositionSystem.h" />
     <ClInclude Include="Core\Default.h" />
     <ClInclude Include="RenderCore\DX12Context.h" />
+    <ClInclude Include="RenderCore\DXGPUResource.h" />
     <ClInclude Include="RenderCore\DXHelpers.h" />
     <ClInclude Include="DataStructures\DynamicArray.h" />
     <ClInclude Include="ECS\EntitySystem.h" />
@@ -171,6 +177,7 @@
     <ClInclude Include="RenderCore\GeometrySystem.h" />
     <ClInclude Include="RenderCore\MaterialSystem.h" />
     <ClInclude Include="RenderCore\PSOSystem.h" />
+    <ClInclude Include="RenderCore\RootSignatureSystem.h" />
     <ClInclude Include="RenderCore\TextureSystem.h" />
     <ClInclude Include="RenderCore\ShaderSystem.h" />
     <ClInclude Include="Util\GeometryGenerator.h" />

@@ -1,15 +1,18 @@
 #pragma once
 #include "../Core/Default.h"
-#include "Camera.h"
 #include "DX12Context.h"
 #include "../Util/Timer.h"
 #include "../Util/Waves.h"
 #include "DXHelpers.h"
+
 enum RenderLayer
 {
 	Opaque = 0,
-	AlphaTest = 1,
-	Transparent = 2,
+	Mirrors,
+	Reflected,
+	AlphaTest,
+	Transparent,
+	Shadow,
 	Count
 };
 
@@ -255,10 +258,10 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 }
 
 void static UpdateMainPassCB(PassConstants& mainPassCB,
-	UploadBuffer<PassConstants>* passCB, Camera* mainCamera,
-	DX12Context* mDXCon, GameTimer* mTimer, XMFLOAT4X4 mProj, FogData fogData)
+	UploadBuffer<PassConstants>* passCB, XMFLOAT4X4 viewMat, XMFLOAT3 eyePos, XMFLOAT4X4 mProj,
+	DX12Context* mDXCon, GameTimer* mTimer, FogData fogData)
 {
-	XMMATRIX view = XMLoadFloat4x4(&mainCamera->View);
+	XMMATRIX view = XMLoadFloat4x4(&viewMat);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -272,7 +275,7 @@ void static UpdateMainPassCB(PassConstants& mainPassCB,
 	XMStoreFloat4x4(&mainPassCB.InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&mainPassCB.ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&mainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-	mainPassCB.EyePosW = mainCamera->EyePos;
+	mainPassCB.EyePosW = eyePos;
 	mainPassCB.RenderTargetSize = XMFLOAT2(mDXCon->Window->width, mDXCon->Window->height);
 	mainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mDXCon->Window->width, 1.0f / mDXCon->Window->height);
 	mainPassCB.NearZ = 1.0f;

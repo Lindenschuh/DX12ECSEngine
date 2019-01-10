@@ -36,35 +36,6 @@ public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
-class CameraSystem
-{
-private:
-	std::vector<EntityID> entities;
-	DX12Renderer* renderer;
-	EntityManger* mEManager;
-
-	float mTheta = 1.5f * XM_PI;
-	float mPhi = XM_PIDIV2 - 0.1f;
-	float mRadius = 50.0f;
-	ImVec2 lastMousePosition;
-public:
-	CameraSystem(EntityManger* eManager, DX12Renderer* ren);
-	void AddObjectToSystem(EntityID id);
-	void UpdateSystem(float time, float deltaTime);
-};
-
-class ControllSystem
-{
-private:
-	std::vector<EntityID> entities;
-	EntityManger* mEManager;
-	float speed = 10.0f;
-public:
-	ControllSystem(EntityManger* eManager);
-	void AddToSystem(EntityID id);
-	void UpdateSystem(float time, float deltaTime);
-};
-
 class GlobalMovement
 {
 private:

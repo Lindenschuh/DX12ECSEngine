@@ -43,6 +43,7 @@ typedef u32 MaterialID;
 typedef u32 TextureID;
 typedef u32 GeometryID;
 typedef u32 FrameResourceID;
+typedef u32 GPUResourceID;
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -51,6 +52,12 @@ template<typename T>
 T Clamp(const T& x, const T& low, const T& high)
 {
 	return x < low ? low : (x > high ? high : x);
+}
+
+template<typename T>
+T Min(const T& x, const T& y)
+{
+	return (x < y) ? x : y;
 }
 
 static XMFLOAT4X4 Identity4x4()

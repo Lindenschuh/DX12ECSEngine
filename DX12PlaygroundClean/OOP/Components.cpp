@@ -185,6 +185,4 @@ void OOPCameraComponent::Update(float time, float deltaTime)
 
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&ViewMat, view);
-	if (isMain)
-		renderer->SetMainCamera(eyePos, ViewMat);
 }

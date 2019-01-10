@@ -84,6 +84,15 @@
     <ClCompile Include="ECS\FogSystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="ECS\CameraSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS\PositionSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS\ControllSystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ext\d3dx12.h">
@@ -120,9 +129,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="RenderCore\DX12Context.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderCore\Camera.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="RenderCore\FrameResource.h">
@@ -174,6 +180,21 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="ECS\EnitityData.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderCore\DXGPUResource.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderCore\RootSignatureSystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\CameraSystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\PositionSystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\ControllSystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

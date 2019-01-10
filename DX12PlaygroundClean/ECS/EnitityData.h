@@ -7,11 +7,21 @@ typedef u32 EntityID;
 struct PositionComponent
 {
 	XMFLOAT3 Position;
+	XMFLOAT3 Right = { 1.0f, 0.0f, 0.0f };
+	XMFLOAT3 Up = { 0.0f, 1.0f, 0.0f };
+	XMFLOAT3 Forward = { 0.0f, 0.0f, 1.0f };
 };
 struct CameraComponent
 {
-	bool isMain = true;
+	float NearZ = 0.0f;
+	float FarZ = 0.0f;
+	float Aspect = 0.0f;
+	float FovY = 0.0f;
+	float NearWindowHeight;
+	float FarWindowHeight;
+
 	XMFLOAT4X4 ViewMat = Identity4x4();
+	XMFLOAT4X4 ProjMat = Identity4x4();
 };
 
 struct VelocityComponent

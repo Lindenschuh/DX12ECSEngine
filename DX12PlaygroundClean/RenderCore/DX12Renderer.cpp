@@ -1,7 +1,7 @@
 #include <assert.h>
 #include "DX12Renderer.h"
 
-DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName)
+DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName, EntityManger* eManager)
 {
 	mTimer = new GameTimer();
 	mDXCon = new DX12Context(width, height, windowName);
@@ -12,7 +12,7 @@ DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName)
 	mGeometrySystem = new GeometrySystem(mDXCon);
 	mShaderSystem = new ShaderSystem(mDXCon);
 	mPSOSystem = new PSOSystem(mDXCon, mShaderSystem, mRootSignature.Get());
-
+	mCameraSystem = new CameraSystem(eManager);
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -45,16 +45,9 @@ void DX12Renderer::FinishSetup()
 
 	mDXCon->flushCommandQueue();
 
-	XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
-	XMStoreFloat4x4(&mProj, p);
-	Update();
-}
-
-void DX12Renderer::
-SetMainCamera(XMFLOAT3 position, XMFLOAT4X4 view)
-{
-	mMainCam.EyePos = position;
-	mMainCam.View = view;
+	mCameraSystem->SetFrustum(mCameraSystem->GetMainCamera(), 0.25f*XM_PI,
+		(float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.0f);
+	Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 }
 
 void DX12Renderer::SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange)
@@ -164,15 +157,18 @@ void DX12Renderer::Draw()
 	mDXCon->mCmdQueue->Signal(mDXCon->mFence.Get(), mDXCon->mCurrentFence);
 }
 
-void DX12Renderer::Update()
+void DX12Renderer::Update(float time, float deltaTime)
 {
 	mFrameResourceSystem->SwitchFrameResource();
+	mCameraSystem->UpdateSystem(time, deltaTime);
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 
 	UpdateObjectPassCB(mRItems, currentFrameResource.InstanceBuffer);
 
 	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialBuffer);
-	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, &mMainCam, mDXCon, mTimer, mProj, mFogData);
+	CameraComponent comp = mCameraSystem->GetMainCameraComp();
+	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, comp.ViewMat, mCameraSystem->GetMainCameraPos()
+		, comp.ProjMat, mDXCon, mTimer, mFogData);
 }
 
 void DX12Renderer::ProcessGlobalEvents()
@@ -182,8 +178,8 @@ void DX12Renderer::ProcessGlobalEvents()
 		mDXCon->resize(gGlobalEvents.ResizeWidth, gGlobalEvents.ResizeHeight);
 
 		gGlobalEvents.isResized = false;
-		XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
-		XMStoreFloat4x4(&mProj, p);
+		mCameraSystem->SetFrustum(mCameraSystem->GetMainCamera(),
+			0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
 	}
 }
 
@@ -193,7 +189,6 @@ void DX12Renderer::BuildRootSignature()
 	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
-
 	slotRootParameter[0].InitAsShaderResourceView(0, 1);
 	slotRootParameter[1].InitAsShaderResourceView(1, 1);
 	slotRootParameter[2].InitAsConstantBufferView(0);
