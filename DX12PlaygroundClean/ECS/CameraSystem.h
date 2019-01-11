@@ -17,6 +17,7 @@ private:
 
 	void LookAt(PositionComponent& comp, FXMVECTOR pos, FXMVECTOR targetPos, FXMVECTOR worldUp);
 public:
+
 	CameraSystem(EntityManger* eManager);
 	void AddObjectToSystem(EntityID id);
 	void SetFrustum(EntityID id, float fovY, float aspect, float zNear, float zFar);

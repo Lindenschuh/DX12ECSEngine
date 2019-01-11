@@ -48,7 +48,11 @@ static void buildBoxGeo(GeometrySystem* system)
 		vertices[i].TexC = box.Vertices[i].TexCoord;
 	}
 
-	Submesh sm = { box.Indicies.size(),0,0 };
+	XMFLOAT3 boxCenterAndExtend = { 4.0f,4.0f,4.0f };
+	BoundingBox boxBound(boxCenterAndExtend, boxCenterAndExtend);
+
+	Submesh sm = { box.Indicies.size(),0,0,boxBound };
+
 	std::string subMeshName = "box";
 	GeoInfo gInfo;
 	gInfo.Name = "boxGeo";

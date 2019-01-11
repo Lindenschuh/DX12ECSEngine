@@ -55,6 +55,10 @@ struct RenderItem
 	u32 GeoIndex = -1;
 
 	std::vector<InstanceData> Instances;
+
+	BoundingBox Bounds;
+	u32 InstanceActive;
+
 	//IndexParameters
 	u32 IndexCount = 0;
 	u32 StartIndexLocation = 0;
@@ -232,8 +236,11 @@ struct PassConstants
 };
 
 void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
-	UploadBuffer<InstanceData>* currentInstanceBuffer)
+	UploadBuffer<InstanceData>* currentInstanceBuffer, XMFLOAT4X4 viewMat, BoundingFrustum CamFrustum)
 {
+	XMMATRIX view = XMLoadFloat4x4(&viewMat);
+	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+
 	u32 instanceCount = 0;
 	for (int lay = 0; lay < RenderLayer::Count; lay++)
 	{
@@ -241,18 +248,31 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 		for (int i = 0; i < rItems.size(); i++)
 		{
 			RenderItem& rItem = rItems[i];
+			u32 instancesPerRItem = 0;
 
 			for (int j = 0; j < rItem.Instances.size(); j++)
 			{
 				XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
 				XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
 
-				InstanceData data;
-				XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
-				XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
-				data.MaterialIndex = rItem.Instances[j].MaterialIndex;
-				currentInstanceBuffer->CopyData(instanceCount++, data);
+				XMMATRIX invWorld = XMMatrixInverse(&XMMatrixDeterminant(world), world);
+				XMMATRIX viewToLocal = XMMatrixMultiply(invView, invWorld);
+
+				BoundingFrustum localFrustum;
+
+				CamFrustum.Transform(localFrustum, viewToLocal);
+
+				if (localFrustum.Contains(rItem.Bounds) != DISJOINT)
+				{
+					InstanceData data;
+					XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
+					XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
+					data.MaterialIndex = rItem.Instances[j].MaterialIndex;
+					currentInstanceBuffer->CopyData(instanceCount++, data);
+					instancesPerRItem++;
+				}
 			}
+			rItem.InstanceActive = instancesPerRItem;
 		}
 	}
 }

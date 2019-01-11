@@ -39,6 +39,7 @@ void CameraSystem::SetFrustum(EntityID id, float fovY, float aspect, float zNear
 	comp.FarWindowHeight = 2.0f * zFar *  tanf(0.5f*fovY);
 
 	XMMATRIX p = XMMatrixPerspectiveFovLH(fovY, aspect, zNear, zFar);
+	BoundingFrustum::CreateFromMatrix(comp.FrustrumBounds, p);
 	XMStoreFloat4x4(&comp.ProjMat, p);
 }
 

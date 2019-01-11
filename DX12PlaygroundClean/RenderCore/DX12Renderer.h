@@ -47,7 +47,6 @@ private:
 	std::string LayerPSO[RenderLayer::Count];
 	FogData mFogData;
 	PassConstants mMainPassCB;
-	u32 ObjectOffsetPerLayer[RenderLayer::Count];
 
 	//Methods
 private:
@@ -59,6 +58,5 @@ private:
 	void CalculateFrameStats();
 	void BuildRootSignature();
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList,
-
-		std::vector<RenderItem>&rItems, u32 offset);
+		std::vector<RenderItem>&rItems, u32& INOUToffset);
 };

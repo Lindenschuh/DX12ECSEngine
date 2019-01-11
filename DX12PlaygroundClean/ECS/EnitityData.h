@@ -22,6 +22,8 @@ struct CameraComponent
 
 	XMFLOAT4X4 ViewMat = Identity4x4();
 	XMFLOAT4X4 ProjMat = Identity4x4();
+
+	BoundingFrustum FrustrumBounds;
 };
 
 struct VelocityComponent
