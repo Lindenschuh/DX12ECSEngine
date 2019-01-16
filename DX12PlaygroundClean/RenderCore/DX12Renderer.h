@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/Default.h"
 #include "../Util/Timer.h"
+#include "../Util/GeometryGenerator.h"
 
 #include "TextureSystem.h"
 #include "MaterialSystem.h"
@@ -25,7 +26,6 @@ public:
 	void FinishSetup();
 	void AddRenderItem(std::string name, RenderItem r, RenderLayer rl);
 	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
-
 	void SetLayerPSO(std::string psoName, RenderLayer layer);
 	std::string GetLayerPSO(RenderLayer layer);
 
@@ -48,6 +48,7 @@ private:
 	FogData mFogData;
 	PassConstants mMainPassCB;
 
+	void BuildSkyBox();
 	//Methods
 private:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentbackBufferView();

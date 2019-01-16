@@ -25,6 +25,7 @@ DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName, Entity
 
 void DX12Renderer::FinishSetup()
 {
+	BuildSkyBox();
 	mTextureSystem->UploadTextures();
 	u32 instanceCount = 0;
 	for (int i = 0; i < RenderLayer::Count; i++)
@@ -126,10 +127,17 @@ void DX12Renderer::Draw()
 	auto passCB = currentFrameResource.PassCB->Resource();
 	mDXCon->mCmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
-	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE skyTexDescriptor(mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
+	skyTexDescriptor.Offset(mTextureSystem->GetSkyBoxID(), mDXCon->mCbvSrvUavDescriptorSize);
+	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, skyTexDescriptor);
+
+	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(4, mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
 
 	u32 drawedObjects = 0;
 	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], drawedObjects);
+
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Skybox]).PSOData.Get());
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Skybox], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::AlphaTest]).PSOData.Get());
 	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::AlphaTest], drawedObjects);
@@ -185,18 +193,22 @@ void DX12Renderer::ProcessGlobalEvents()
 
 void DX12Renderer::BuildRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE texTable;
-	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
+	CD3DX12_DESCRIPTOR_RANGE texTableSkyBox;
+	texTableSkyBox.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
+	CD3DX12_DESCRIPTOR_RANGE texTable;
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 1, 0);
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
 	slotRootParameter[0].InitAsShaderResourceView(0, 1);
 	slotRootParameter[1].InitAsShaderResourceView(1, 1);
 	slotRootParameter[2].InitAsConstantBufferView(0);
-	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[3].InitAsDescriptorTable(1, &texTableSkyBox, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[4].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	auto staticSmaplers = mDXCon->GetStaticSamplers();
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(5, slotRootParameter,
 		staticSmaplers.size(), staticSmaplers.data(),
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -241,6 +253,60 @@ void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vect
 		INOUToffset += ri.InstanceActive;
 	}
 }
+
+void DX12Renderer::BuildSkyBox()
+{
+	mTextureSystem->LoadSkybox("SkyBox", L"Textures/grasscube1024.dds");
+	mShaderSystem->LoadShader("SkyboxVS", L"Shaders\\Sky.hlsl", VertexShader);
+	mShaderSystem->LoadShader("SkyboxPS", L"Shaders\\Sky.hlsl", PixelShader);
+	mPSOSystem->BuildSkyboxPSO("SkyboxPSO", "SkyboxVS", "SkyboxPS", DefaultPSOOptions());
+
+	SetLayerPSO("SkyboxPSO", RenderLayer::Skybox);
+
+	MaterialConstants mc = { XMFLOAT4(1.0f,1.0f,1.0f,1.0f),XMFLOAT3(0.1f, 0.1f, 0.1f), 1.0f };
+
+	MaterialID mId = mMaterialSystem->BuildMaterial("SkyBox", 0, mc);
+	GeometryGenerator geoGen;
+	MeshData md = geoGen.CreateSphere(0.5f, 20, 20);
+
+	std::vector<Vertex> vertices(md.Vertices.size());
+	for (size_t i = 0; i < md.Vertices.size(); ++i)
+	{
+		auto& p = md.Vertices[i].Position;
+		vertices[i].Pos = p;
+		vertices[i].Normal = md.Vertices[i].Normal;
+		vertices[i].TexC = md.Vertices[i].TexCoord;
+	}
+
+	Submesh sm = { md.Indicies.size(),0,0 };
+	std::string subMeshName = "Skybox";
+
+	GeoInfo gInfo = {};
+	gInfo.Name = "SkyboxCube";
+	gInfo.indiceCount = md.Indicies.size();
+	gInfo.indicies = md.Indicies.data();
+	gInfo.vertCount = vertices.size();
+	gInfo.verts = vertices.data();
+	gInfo.SubmeshNames = &subMeshName;
+	gInfo.submeshs = &sm;
+	gInfo.submeshCount;
+
+	GeometryID gID = mGeometrySystem->LoadGeometry(gInfo);
+	RenderItem skybox;
+	skybox.GeoIndex = gID;
+	skybox.Bounds = sm.Bounds;
+	skybox.baseVertexLocation = sm.BaseVertexLocation;
+	skybox.IndexCount = sm.IndexCount;
+	skybox.StartIndexLocation = sm.StartIndexLocation;
+
+	InstanceData SkyBoxData;
+	SkyBoxData.MaterialIndex = mId;
+	XMStoreFloat4x4(&SkyBoxData.World, XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
+	skybox.Instances.push_back(SkyBoxData);
+
+	mRItems[Skybox].push_back(skybox);
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentbackBufferView()
 {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(

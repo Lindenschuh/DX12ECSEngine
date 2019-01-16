@@ -90,7 +90,7 @@ void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityI
 		tmpItem.GeoIndex = md.GeometryIndex;
 
 		tmpItem.PrimitiveType = desc->PrimitiveType;
-
+		tmpItem.Bounds = sMesh.Bounds;
 		tmpItem.IndexCount = sMesh.IndexCount;
 		tmpItem.StartIndexLocation = sMesh.StartIndexLocation;
 		tmpItem.baseVertexLocation = sMesh.BaseVertexLocation;

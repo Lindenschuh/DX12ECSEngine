@@ -61,6 +61,9 @@ public:
 	void BuildShadowPSO(std::string name, std::string VSName,
 		std::string PSName, PSOOptions& options);
 
+	void BuildSkyboxPSO(std::string name, std::string VSName,
+		std::string PSName, PSOOptions& options);
+
 	void ReloadPSO(std::string name);
 	PSO& GetPSO(std::string name);
 	~PSOSystem();

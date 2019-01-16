@@ -11,8 +11,6 @@ struct TextureOptions
 {
 	TextureFileType type;
 	D3D12_SRV_DIMENSION ViewDimension;
-	u32 MostDetailedMip;
-	s32 MipLevels;
 };
 
 static TextureOptions DefaultTextureOptions()
@@ -21,8 +19,6 @@ static TextureOptions DefaultTextureOptions()
 	{
 		DDS,
 		D3D12_SRV_DIMENSION_TEXTURE2D,
-		0,
-		-1
 	};
 }
 
@@ -33,12 +29,20 @@ private:
 	std::vector<Texture> mAllTextures;
 	std::vector<TextureOptions> mTexOptions;
 	std::unordered_map<std::string, TextureID> mTextureIndex;
+
+	Texture mSkybox;
 public:
 	TextureSystem(DX12Context* DXContext);
 	TextureID	LoadTexture(std::string name, std::wstring path, TextureOptions& opt);
+	void	LoadSkybox(std::string name, std::wstring path);
+	TextureID	LoadTexture2D(std::string name, std::wstring path);
+
 	Texture&	GetTexture(std::string name);
 	Texture&	GetTexture(TextureID id);
+	Texture&	GetSkyBox();
 	TextureID	GetTextureID(std::string name);
+	TextureID	GetSkyBoxID();
+
 	void		UploadTextures();
 	~TextureSystem();
 };

@@ -122,6 +122,7 @@ public:
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;
 	ComPtr<ID3D12DescriptorHeap> mSRVHeap;
 	ComPtr<ID3D12DescriptorHeap>  mTextureHeap;
+	ComPtr<ID3D12DescriptorHeap> mSkyBoxHeap;
 
 	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 

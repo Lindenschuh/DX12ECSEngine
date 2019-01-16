@@ -8,6 +8,7 @@
 enum RenderLayer
 {
 	Opaque = 0,
+	Skybox,
 	Mirrors,
 	Reflected,
 	AlphaTest,
@@ -245,6 +246,22 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 	for (int lay = 0; lay < RenderLayer::Count; lay++)
 	{
 		std::vector<RenderItem>& rItems = allRItems[lay];
+
+		if (lay == RenderLayer::Skybox)
+		{
+			RenderItem& rItem = rItems[0];
+			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[0].World);
+			XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[0].TexTransform);
+
+			InstanceData data;
+			XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
+			XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
+			data.MaterialIndex = rItem.Instances[0].MaterialIndex;
+			currentInstanceBuffer->CopyData(instanceCount++, data);
+			rItem.InstanceActive = 1;
+			continue;
+		}
+
 		for (int i = 0; i < rItems.size(); i++)
 		{
 			RenderItem& rItem = rItems[i];

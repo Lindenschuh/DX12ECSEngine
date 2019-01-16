@@ -2,7 +2,7 @@
 #include "OOP/GameObject.h"
 #include "OOP/Components.h"
 #include "ECS/RenderSystem.h"
-#include "Util/GeometryGenerator.h"
+
 #include "ECS/FogSystem.h"
 #include "ECS/CameraSystem.h"
 #include "ECS/PositionSystem.h"
@@ -31,7 +31,7 @@ static void loadTextures(TextureSystem* system)
 {
 	system->LoadTexture("crateTex", L"Textures/WoodCrate01.dds", DefaultTextureOptions());
 	system->LoadTexture("waterTex", L"Textures/water1.dds", DefaultTextureOptions());
-	system->LoadTexture("fenceTex", L"Textures/WireFence.dds", DefaultTextureOptions());
+	system->LoadTexture("defaultTex", L"Textures/white1x1.dds", DefaultTextureOptions());
 }
 
 static void buildBoxGeo(GeometrySystem* system)
@@ -82,28 +82,21 @@ static void buildMaterials(MaterialSystem* system)
 	system->BuildMaterial("water", 1, water);
 
 	MaterialConstants wirefence;
-	wirefence.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	wirefence.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-	wirefence.Roughness = 0.25f;
-	system->BuildMaterial("wirefence", 2, wirefence);
+	wirefence.DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f);
+	wirefence.FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
+	wirefence.Roughness = 0.1f;
+	system->BuildMaterial("metal", 2, wirefence);
 }
 
 static void CreatePSO(DX12Renderer* ren)
 {
-	const D3D_SHADER_MACRO defines[] =
-	{
-		"FOG", "1",
-		NULL,NULL
-	};
-
 	const D3D_SHADER_MACRO alphaTestDefines[] =
 	{
-		"FOG", "1",
 		"ALPHA_TEST", "1",
 		NULL,NULL
 	};
 	ren->mShaderSystem->LoadShader("standardVS", L"Shaders\\color.hlsl", VertexShader);
-	ren->mShaderSystem->LoadShader("opaquePS", L"Shaders\\color.hlsl", PixelShader, defines);
+	ren->mShaderSystem->LoadShader("opaquePS", L"Shaders\\color.hlsl", PixelShader);
 	ren->mShaderSystem->LoadShader("alphaTestPS", L"Shaders\\color.hlsl", PixelShader, alphaTestDefines);
 
 	PSOOptions AlphaTestOptions = DefaultPSOOptions();
@@ -141,7 +134,7 @@ int main()
 	float maxSpeed = 8;
 	float minSpeed = 3;
 
-	for (int i = 0; i < boxCount / 2; i++)
+	for (int i = 0; i < boxCount; i++)
 	{
 		EntityID eId = gObjects.addEntity("box");
 		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
@@ -155,32 +148,10 @@ int main()
 		width += 10;
 		RenderItemDesc desc;
 		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "wirefence";
+		desc.MaterialName = "metal";
 		desc.SubMeshName = "box";
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		desc.Layer = RenderLayer::AlphaTest;
-		CreateRenderItem(&desc, render, eId, &gObjects);
-		globalMovement.AddToSystem(eId);
-	}
-
-	for (int i = 0; i < boxCount / 2; i++)
-	{
-		EntityID eId = gObjects.addEntity("box");
-		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
-		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
-		if (width > maxWidth)
-		{
-			width = 0;
-			height += 10;
-		}
-		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
-		width += 10;
-		RenderItemDesc desc;
-		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "crate";
-		desc.SubMeshName = "box";
-		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::Opaque;
 		CreateRenderItem(&desc, render, eId, &gObjects);
 		globalMovement.AddToSystem(eId);
 	}
@@ -199,7 +170,7 @@ int main()
 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
 		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		//fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);

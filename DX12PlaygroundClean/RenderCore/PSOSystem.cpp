@@ -170,6 +170,17 @@ void PSOSystem::BuildShadowPSO(std::string name, std::string VSName, std::string
 	BuildPSO(name, VSName, PSName, options, &desc, &shadowStencilDesc);
 }
 
+void PSOSystem::BuildSkyboxPSO(std::string name, std::string VSName, std::string PSName, PSOOptions & options)
+{
+	D3D12_RASTERIZER_DESC RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	D3D12_DEPTH_STENCIL_DESC DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
+	RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+	BuildPSO(name, VSName, PSName, options, nullptr, &DepthStencilState, &RasterizerState);
+}
+
 void PSOSystem::ReloadPSO(std::string name)
 {
 	PSO& pso = mPSOs[name];
