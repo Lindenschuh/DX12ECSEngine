@@ -58,7 +58,8 @@ struct RenderItem
 	std::vector<InstanceData> Instances;
 
 	BoundingBox Bounds;
-	u32 InstanceActive;
+	u32 InstancesVisible = 0;
+	u32 InstanceUpdated = 0;
 
 	//IndexParameters
 	u32 IndexCount = 0;
@@ -258,7 +259,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 			XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
 			data.MaterialIndex = rItem.Instances[0].MaterialIndex;
 			currentInstanceBuffer->CopyData(instanceCount++, data);
-			rItem.InstanceActive = 1;
+			rItem.InstancesVisible = 1;
 			continue;
 		}
 
@@ -267,7 +268,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 			RenderItem& rItem = rItems[i];
 			u32 instancesPerRItem = 0;
 
-			for (int j = 0; j < rItem.Instances.size(); j++)
+			for (int j = 0; j < rItem.InstanceUpdated; j++)
 			{
 				XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
 				XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
@@ -289,7 +290,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 					instancesPerRItem++;
 				}
 			}
-			rItem.InstanceActive = instancesPerRItem;
+			rItem.InstancesVisible = instancesPerRItem;
 		}
 	}
 }
@@ -322,10 +323,7 @@ void static UpdateMainPassCB(PassConstants& mainPassCB,
 	mainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
 	mainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
 	mainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
-	mainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mainPassCB.Lights[1].Strength = { 0.5f, 0.5f, 0.5f };
-	mainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+
 	mainPassCB.FogData = fogData;
 
 	passCB->CopyData(0, mainPassCB);

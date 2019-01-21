@@ -4,7 +4,7 @@
 
 // Defaults for number of lights.
 #ifndef NUM_DIR_LIGHTS
-#define NUM_DIR_LIGHTS 3
+#define NUM_DIR_LIGHTS 1
 #endif
 
 #ifndef NUM_POINT_LIGHTS
@@ -17,7 +17,6 @@
 
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
-
 
 struct InstanceData
 {
@@ -55,8 +54,6 @@ SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
 
-
-
 cbuffer cbPass : register(b0)
 {
 	float4x4 gView;
@@ -86,4 +83,3 @@ cbuffer cbPass : register(b0)
 	// are spot lights for a maximum of MaxLights per object.
 	Light gLights[MaxLights];
 };
-

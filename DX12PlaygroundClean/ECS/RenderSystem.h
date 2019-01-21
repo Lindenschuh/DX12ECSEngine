@@ -49,6 +49,17 @@ public:
 	void UpdateSystem(float time, float deltaTime);
 };
 
+class VisibilitySystem
+{
+private:
+	EntityManger* mEManger;
+	std::vector<EntityID> entities;
+public:
+	void AddToSystem(EntityID eId);
+	VisibilitySystem(EntityManger* eMangager);
+	void UpdateSystem(float time, float deltaTime);
+};
+
 struct RenderItemDesc
 {
 	std::string GeometryName;

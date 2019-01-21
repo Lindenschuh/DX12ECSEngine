@@ -113,7 +113,7 @@ static void CreatePSO(DX12Renderer* ren)
 //ECS
 int main()
 {
-	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow", &gObjects);
+	DX12Renderer* render = new DX12Renderer(1920, 1080, "Winnidow", &gObjects);
 
 	buildBoxGeo(render->mGeometrySystem);
 	loadTextures(render->mTextureSystem);
@@ -165,13 +165,15 @@ int main()
 	EntityID fogId = gObjects.addEntity("Fog");
 	fogSystem.AddEntity(fogId);
 
+	VisibilitySystem visSystem(&gObjects);
+
 	while (render->IsWindowActive())
 	{
 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
 		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		//fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-
+		visSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 

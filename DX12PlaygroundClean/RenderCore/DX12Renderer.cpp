@@ -249,8 +249,9 @@ void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vect
 		D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddress = instanceBuffer->GetGPUVirtualAddress() + instanceSize * (INOUToffset);
 
 		cmdList->SetGraphicsRootShaderResourceView(0, instanceBufferAddress);
-		cmdList->DrawIndexedInstanced(ri.IndexCount, ri.InstanceActive, ri.StartIndexLocation, ri.baseVertexLocation, 0);
-		INOUToffset += ri.InstanceActive;
+		cmdList->DrawIndexedInstanced(ri.IndexCount, ri.InstancesVisible, ri.StartIndexLocation, ri.baseVertexLocation, 0);
+		INOUToffset += ri.InstancesVisible;
+		ri.InstanceUpdated = 0;
 	}
 }
 

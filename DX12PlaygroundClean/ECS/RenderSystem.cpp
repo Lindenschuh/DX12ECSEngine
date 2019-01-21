@@ -35,7 +35,8 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 		{
 			RenderComponent& rComp = eManager->mRenderData[eId];
 			PositionComponent& pComp = eManager->mPositions[eId];
-			InstanceData&  instance = renderer->mRItems[rComp.layer][rComp.renderItemID].Instances[rComp.instanceID];
+			RenderItem& rItem = renderer->mRItems[rComp.layer][rComp.renderItemID];
+			InstanceData&  instance = rItem.Instances[rItem.InstanceUpdated++];
 
 			XMStoreFloat4x4(&instance.World,
 				XMMatrixMultiply(XMMatrixIdentity(),
@@ -138,6 +139,22 @@ void GlobalMovement::UpdateSystem(float time, float deltaTime)
 		{
 			velo = XMFLOAT3(-velo.x, -velo.y, -velo.z);
 			pos.z = bounds.z;
+		}
+	}
+}
+
+VisibilitySystem::VisibilitySystem(EntityManger * eMangager)
+{
+	mEManger = eMangager;
+}
+
+void VisibilitySystem::UpdateSystem(float time, float deltaTime)
+{
+	if (ImGui::IsKeyPressed('V'))
+	{
+		for (int i = 0; i < mEManger->mFlags.size(); i++)
+		{
+			mEManger->mFlags[i] ^= EntityManger::FlagRenderData;
 		}
 	}
 }
