@@ -126,7 +126,7 @@ int main()
 	RenderSystem renderSystem(&gObjects, render);
 	FogSystem fogSystem(&gObjects, render);
 	ControllSystem ConSystem(&gObjects, &PosSystem);
-
+	VisibilitySystem visSystem(&gObjects);
 	int boxCount = 1000;
 	int maxWidth = (boxCount / 100);
 	int height = 0;
@@ -154,6 +154,7 @@ int main()
 		desc.Layer = RenderLayer::AlphaTest;
 		CreateRenderItem(&desc, render, eId, &gObjects);
 		globalMovement.AddToSystem(eId);
+		visSystem.AddToSystem(eId);
 	}
 
 	EntityID cameraId = gObjects.addEntity("camera");
@@ -164,8 +165,6 @@ int main()
 
 	EntityID fogId = gObjects.addEntity("Fog");
 	fogSystem.AddEntity(fogId);
-
-	VisibilitySystem visSystem(&gObjects);
 
 	while (render->IsWindowActive())
 	{

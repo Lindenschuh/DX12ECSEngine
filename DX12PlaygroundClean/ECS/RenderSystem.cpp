@@ -152,9 +152,15 @@ void VisibilitySystem::UpdateSystem(float time, float deltaTime)
 {
 	if (ImGui::IsKeyPressed('V'))
 	{
-		for (int i = 0; i < mEManger->mFlags.size(); i++)
+		for (int i = 0; i < entities.size(); i++)
 		{
-			mEManger->mFlags[i] ^= EntityManger::FlagRenderData;
+			EntityID eId = entities[i];
+			mEManger->mFlags[eId] ^= EntityManger::FlagRenderData;
 		}
 	}
+}
+
+void VisibilitySystem::AddToSystem(EntityID eId)
+{
+	entities.push_back(eId);
 }

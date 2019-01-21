@@ -48,7 +48,6 @@ struct RenderComponent
 	XMFLOAT4X4 textureTransform = Identity4x4();
 	u32 renderItemID = -1;
 	GeometryID GeoIndex = -1;
-	u32 instanceID = -1;
 	MaterialID MatCBIndex = -1;
 };
 

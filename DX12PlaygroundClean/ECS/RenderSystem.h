@@ -126,7 +126,6 @@ void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityI
 	RenderComponent& rComp = eManger->mRenderData[eId];
 	rComp.layer = desc->Layer;
 	rComp.GeoIndex = ritem->GeoIndex;
-	rComp.instanceID = instanceid;
 	rComp.MatCBIndex = mat.MatCBIndex;
 	rComp.renderItemID = Objindex;
 }
