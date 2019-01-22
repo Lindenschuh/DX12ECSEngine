@@ -10,6 +10,7 @@ struct VertexIn
 	float3 PosL    : POSITION;
 	float3 NormalL : NORMAL;
 	float2 TexC    : TEXCOORD;
+    float3 TangentU : TANGENT;
 };
 
 struct VertexOut
@@ -17,7 +18,8 @@ struct VertexOut
 	float4 PosH    : SV_POSITION;
 	float3 PosW    : POSITION;
 	float3 NormalW : NORMAL;
-	float2 TexC    : TEXCOORD;
+    float3 TangentW : TANGENT;
+    float2 TexC    : TEXCOORD;
 
 	nointerpolation uint MatIndex : MATINDEX;
 };
@@ -39,6 +41,7 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 	vout.PosW = posW.xyz;
 
 	vout.NormalW = mul(vin.NormalL, (float3x3)world);
+    vout.TangentW = mul(vin.TangentU, (float3x3)world);
 
 	// Transform to homogeneous clip space.
 	vout.PosH = mul(posW, gViewProj);
@@ -63,12 +66,16 @@ float4 PS(VertexOut pin) : SV_Target
 	float3 fresnelR0 = matData.FresnelR0;
 	float  roughness = matData.Roughness;
 	uint diffuseTexIndex = matData.DiffuseMapIndex;
-
-	// Dynamically look up the texture in the array.
-	diffuseAlbedo *= gDiffuseMap[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
+    uint normalTexIndex = matData.NormalMapIndex;
 
 	// Interpolating normal can unnormalize it, so renormalize it.
 	pin.NormalW = normalize(pin.NormalW);
+    float4 normalMapSample = gTextureMaps[normalTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+    float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
+
+
+    // Dynamically look up the texture in the array.
+	diffuseAlbedo *= gTextureMaps[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
 
 	// Vector from point being lit to eye.
 	float3 toEyeW = normalize(gEyePosW - pin.PosW);
@@ -76,7 +83,7 @@ float4 PS(VertexOut pin) : SV_Target
 	// Light terms.
 	float4 ambient = gAmbientLight * diffuseAlbedo;
 
-	const float shininess = 1.0f - roughness;
+    const float shininess = (1.0f - roughness) * normalMapSample.a;
 	Material mat = { diffuseAlbedo, fresnelR0, shininess };
 	float3 shadowFactor = 1.0f;
 	float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
@@ -84,9 +91,9 @@ float4 PS(VertexOut pin) : SV_Target
 
 	float4 litColor = ambient + directLight;
 
-    float3 r = reflect(-toEyeW, pin.NormalW);
+    float3 r = reflect(-toEyeW, bumpedNormalW);
     float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
-    float3 fresnelFactor = SchlickFresnel(fresnelR0, pin.NormalW, r);
+    float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
     litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
 
 #ifdef FOG

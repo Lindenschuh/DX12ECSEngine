@@ -29,9 +29,10 @@ static XMFLOAT3 GetHillsNormal(float x, float z)
 
 static void loadTextures(TextureSystem* system)
 {
-	system->LoadTexture("crateTex", L"Textures/WoodCrate01.dds", DefaultTextureOptions());
-	system->LoadTexture("waterTex", L"Textures/water1.dds", DefaultTextureOptions());
+	system->LoadTexture("crateTex", L"Textures/bricks2.dds", DefaultTextureOptions());
+	system->LoadTexture("waterTex", L"Textures/bricks2_nmap.dds", DefaultTextureOptions());
 	system->LoadTexture("defaultTex", L"Textures/white1x1.dds", DefaultTextureOptions());
+	system->LoadTexture("defaultTexNormal", L"Textures/default_nmap.dds", DefaultTextureOptions());
 }
 
 static void buildBoxGeo(GeometrySystem* system)
@@ -46,6 +47,7 @@ static void buildBoxGeo(GeometrySystem* system)
 		vertices[i].Pos = p;
 		vertices[i].Normal = box.Vertices[i].Normal;
 		vertices[i].TexC = box.Vertices[i].TexCoord;
+		vertices[i].Tangent = box.Vertices[i].TangentU;
 	}
 
 	XMFLOAT3 boxCenterAndExtend = { 4.0f,4.0f,4.0f };
@@ -73,19 +75,25 @@ static void buildMaterials(MaterialSystem* system)
 	crate.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	crate.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	crate.Roughness = 0.25f;
-	system->BuildMaterial("crate", 0, crate);
+	system->BuildMaterial("crate", 0, 0, crate);
 
 	MaterialConstants water;
 	water.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	water.FresnelR0 = { 0.2f, 0.2f, 0.2f };
 	water.Roughness = 0.0f;
-	system->BuildMaterial("water", 1, water);
+	system->BuildMaterial("water", 1, 0, water);
 
 	MaterialConstants wirefence;
 	wirefence.DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f);
 	wirefence.FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
 	wirefence.Roughness = 0.1f;
-	system->BuildMaterial("metal", 2, wirefence);
+	system->BuildMaterial("metal", 2, 3, wirefence);
+
+	MaterialConstants brick;
+	brick.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	brick.FresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
+	brick.Roughness = 0.1f;
+	system->BuildMaterial("brick", 0, 1, brick);
 }
 
 static void CreatePSO(DX12Renderer* ren)
@@ -105,7 +113,7 @@ static void CreatePSO(DX12Renderer* ren)
 	ren->mPSOSystem->BuildTransparentPSO("transparent", "standardVS", "opaquePS", DefaultPSOOptions());
 	ren->mPSOSystem->BuildTransparentPSO("alphaTest", "standardVS", "alphaTestPS", DefaultPSOOptions());
 
-	ren->SetLayerPSO("transparent", RenderLayer::Opaque);
+	ren->SetLayerPSO("opaque", RenderLayer::Opaque);
 	ren->SetLayerPSO("transparent", RenderLayer::Transparent);
 	ren->SetLayerPSO("alphaTest", RenderLayer::AlphaTest);
 }
@@ -148,10 +156,10 @@ int main()
 		width += 10;
 		RenderItemDesc desc;
 		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "metal";
+		desc.MaterialName = "brick";
 		desc.SubMeshName = "box";
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::AlphaTest;
+		desc.Layer = RenderLayer::Opaque;
 		CreateRenderItem(&desc, render, eId, &gObjects);
 		globalMovement.AddToSystem(eId);
 		visSystem.AddToSystem(eId);

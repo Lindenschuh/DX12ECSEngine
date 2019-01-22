@@ -7,16 +7,18 @@ MaterialSystem::MaterialSystem(DX12Context * DXContext, TextureSystem * tSystem)
 }
 
 MaterialID MaterialSystem::BuildMaterial(std::string  name,
-	std::string  TextureName, MaterialConstants & options)
+	std::string diffuseMapName, std::string normalMapName, MaterialConstants & options)
 {
-	return BuildMaterial(name, mTextureSystem->GetTextureID(TextureName), options);
+	return BuildMaterial(name, mTextureSystem->GetTextureID(diffuseMapName),
+		mTextureSystem->GetTextureID(normalMapName), options);
 }
 
-MaterialID MaterialSystem::BuildMaterial(std::string name, TextureID textureID, MaterialConstants & options)
+MaterialID MaterialSystem::BuildMaterial(std::string name, TextureID diffuseMapID, TextureID normalMapID, MaterialConstants & options)
 {
 	Material material;
 	material.MatCBIndex = mAllMaterials.size();
-	material.DiffuseSrvHeapIndex = textureID;
+	material.DiffuseSrvHeapIndex = diffuseMapID;
+	material.NormalSrvHeapIndex = normalMapID;
 	material.DiffuseAlbedo = options.DiffuseAlbedo;
 	material.FresnelR0 = options.FresnelR0;
 	material.Roughness = options.Roughness;
@@ -63,6 +65,7 @@ void MaterialSystem::UpdateMaterials(UploadBuffer<MaterialData>* materialBuffer)
 			matData.Roughness = mat.Roughness;
 			XMStoreFloat4x4(&matData.MatTransform, XMMatrixTranspose(matTransform));
 			matData.DiffuseMapIndex = mat.DiffuseSrvHeapIndex;
+			matData.NormalMapIndex = mat.NormalSrvHeapIndex;
 			materialBuffer->CopyData(mat.MatCBIndex, matData);
 
 			mat.NumFramesDirty--;

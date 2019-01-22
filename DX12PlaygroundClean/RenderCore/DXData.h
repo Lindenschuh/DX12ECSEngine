@@ -43,9 +43,9 @@ struct MaterialData
 	XMFLOAT4X4 MatTransform = Identity4x4();
 
 	UINT DiffuseMapIndex = 0;
+	UINT NormalMapIndex = 0;
 	UINT MaterialPad0;
 	UINT MaterialPad1;
-	UINT MaterialPad2;
 };
 
 struct RenderItem
@@ -72,7 +72,8 @@ typedef struct Vertex
 	XMFLOAT3 Pos;
 	XMFLOAT3 Normal;
 	XMFLOAT2 TexC;
-} Vertex1;
+	XMFLOAT3 Tangent;
+} Vertex;
 
 typedef struct Vertex2
 {

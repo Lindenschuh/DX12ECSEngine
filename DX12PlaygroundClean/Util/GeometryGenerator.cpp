@@ -110,12 +110,12 @@ MeshData GeometryGenerator::CreateSphere(float radius, u32 sliceCount, u32 stack
 			v.Position.y = radius * cosf(phi);
 			v.Position.z = radius * sinf(phi) * sinf(theta);
 
-			v.TagentU.x = -radius * sinf(phi) * sinf(theta);
-			v.TagentU.y = 0.0f;
-			v.TagentU.z = +radius * sinf(phi) * cosf(theta);
+			v.TangentU.x = -radius * sinf(phi) * sinf(theta);
+			v.TangentU.y = 0.0f;
+			v.TangentU.z = +radius * sinf(phi) * cosf(theta);
 
-			XMVECTOR T = XMLoadFloat3(&v.TagentU);
-			XMStoreFloat3(&v.TagentU, XMVector3Normalize(T));
+			XMVECTOR T = XMLoadFloat3(&v.TangentU);
+			XMStoreFloat3(&v.TangentU, XMVector3Normalize(T));
 
 			XMVECTOR P = XMLoadFloat3(&v.Position);
 			XMStoreFloat3(&v.Normal, XMVector3Normalize(P));
@@ -223,12 +223,12 @@ MeshData GeometryGenerator::CreateGeospehere(float radius, u32 numSubdivisons)
 		meshData.Vertices[i].TexCoord.x = theta / XM_2PI;
 		meshData.Vertices[i].TexCoord.y = phi / XM_PI;
 
-		meshData.Vertices[i].TagentU.x = -radius * sinf(phi) * sinf(theta);
-		meshData.Vertices[i].TagentU.y = 0.0f;
-		meshData.Vertices[i].TagentU.z = +radius * sinf(phi) * cosf(theta);
+		meshData.Vertices[i].TangentU.x = -radius * sinf(phi) * sinf(theta);
+		meshData.Vertices[i].TangentU.y = 0.0f;
+		meshData.Vertices[i].TangentU.z = +radius * sinf(phi) * cosf(theta);
 
-		XMVECTOR T = XMLoadFloat3(&meshData.Vertices[i].TagentU);
-		XMStoreFloat3(&meshData.Vertices[i].TagentU, XMVector3Normalize(T));
+		XMVECTOR T = XMLoadFloat3(&meshData.Vertices[i].TangentU);
+		XMStoreFloat3(&meshData.Vertices[i].TangentU, XMVector3Normalize(T));
 	}
 
 	return meshData;
@@ -262,11 +262,11 @@ MeshData GeometryGenerator::CreateCylider(float bottomRadius, float topRadius, f
 			v.TexCoord.x = (float)j / sliceCount;
 			v.TexCoord.y = 1.0f - (float)i / stackCount;
 
-			v.TagentU = { -s, 0.0f, c };
+			v.TangentU = { -s, 0.0f, c };
 
 			float dr = bottomRadius - topRadius;
 			XMFLOAT3 bitangent = { dr*c, -height, dr*s };
-			XMVECTOR T = XMLoadFloat3(&v.TagentU);
+			XMVECTOR T = XMLoadFloat3(&v.TangentU);
 			XMVECTOR B = XMLoadFloat3(&bitangent);
 			XMVECTOR N = XMVector3Normalize(XMVector3Cross(T, B));
 			XMStoreFloat3(&v.Normal, N);
@@ -324,7 +324,7 @@ MeshData GeometryGenerator::CreateGrid(float width, float depth, u32 m, u32 n)
 
 			meshData.Vertices[i*n + j].Position = { x, 0.0f, z };
 			meshData.Vertices[i*n + j].Normal = { 0.0f, 1.0f, 0.0f };
-			meshData.Vertices[i*n + j].TagentU = { 1.0f, 0.0f, 0.0f };
+			meshData.Vertices[i*n + j].TangentU = { 1.0f, 0.0f, 0.0f };
 
 			meshData.Vertices[i*n + j].TexCoord.x = j * du;
 			meshData.Vertices[i*n + j].TexCoord.y = i * dv;
@@ -468,8 +468,8 @@ VertexComplex GeometryGenerator::MidPoint(const VertexComplex & v0, const Vertex
 	XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
 	XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
 
-	XMVECTOR tan0 = XMLoadFloat3(&v0.TagentU);
-	XMVECTOR tan1 = XMLoadFloat3(&v1.TagentU);
+	XMVECTOR tan0 = XMLoadFloat3(&v0.TangentU);
+	XMVECTOR tan1 = XMLoadFloat3(&v1.TangentU);
 
 	XMVECTOR tex0 = XMLoadFloat2(&v0.TexCoord);
 	XMVECTOR tex1 = XMLoadFloat2(&v1.TexCoord);
@@ -482,7 +482,7 @@ VertexComplex GeometryGenerator::MidPoint(const VertexComplex & v0, const Vertex
 	VertexComplex v;
 	XMStoreFloat3(&v.Position, pos);
 	XMStoreFloat3(&v.Normal, normal);
-	XMStoreFloat3(&v.TagentU, tagent);
+	XMStoreFloat3(&v.TangentU, tagent);
 	XMStoreFloat2(&v.TexCoord, tex);
 
 	return v;

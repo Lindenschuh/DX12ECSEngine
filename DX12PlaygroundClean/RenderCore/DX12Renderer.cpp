@@ -197,7 +197,7 @@ void DX12Renderer::BuildRootSignature()
 	texTableSkyBox.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
 	CD3DX12_DESCRIPTOR_RANGE texTable;
-	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 1, 0);
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, gNumOfTexures, 1, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
 	slotRootParameter[0].InitAsShaderResourceView(0, 1);
@@ -266,7 +266,7 @@ void DX12Renderer::BuildSkyBox()
 
 	MaterialConstants mc = { XMFLOAT4(1.0f,1.0f,1.0f,1.0f),XMFLOAT3(0.1f, 0.1f, 0.1f), 1.0f };
 
-	MaterialID mId = mMaterialSystem->BuildMaterial("SkyBox", 0, mc);
+	MaterialID mId = mMaterialSystem->BuildMaterial("SkyBox", 0, 0, mc);
 	GeometryGenerator geoGen;
 	MeshData md = geoGen.CreateSphere(0.5f, 20, 20);
 
@@ -277,6 +277,7 @@ void DX12Renderer::BuildSkyBox()
 		vertices[i].Pos = p;
 		vertices[i].Normal = md.Vertices[i].Normal;
 		vertices[i].TexC = md.Vertices[i].TexCoord;
+		vertices[i].Tangent = md.Vertices[i].TangentU;
 	}
 
 	Submesh sm = { md.Indicies.size(),0,0 };

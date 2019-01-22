@@ -14,8 +14,8 @@ private:
 	std::unordered_map<std::string, u32> mMaterialIDs;
 public:
 	MaterialSystem(DX12Context* DXContext, TextureSystem* tSystem);
-	MaterialID BuildMaterial(std::string name, std::string TextureName, MaterialConstants& options);
-	MaterialID BuildMaterial(std::string name, TextureID textureID, MaterialConstants& options);
+	MaterialID BuildMaterial(std::string name, std::string diffuseMapName, std::string normalMapName, MaterialConstants& options);
+	MaterialID BuildMaterial(std::string name, TextureID diffuseMapID, TextureID normalMapID, MaterialConstants& options);
 
 	u32 GetMaterialCount();
 	Material& GetMaterial(std::string name);

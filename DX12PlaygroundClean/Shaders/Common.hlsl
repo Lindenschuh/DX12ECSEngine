@@ -35,14 +35,15 @@ struct MaterialData
 	float    Roughness;
 	float4x4 MatTransform;
 	uint     DiffuseMapIndex;
-	uint     MatPad0;
+    uint     NormalMapIndex;
+    uint     MatPad0;
 	uint     MatPad1;
-	uint     MatPad2;
+	
 };
 
 TextureCube gCubeMap : register(t0);
 
-Texture2D gDiffuseMap[3] : register(t1);
+Texture2D gTextureMaps[4] : register(t1);
 
 StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
 StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
@@ -83,3 +84,21 @@ cbuffer cbPass : register(b0)
 	// are spot lights for a maximum of MaxLights per object.
 	Light gLights[MaxLights];
 };
+
+float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
+{
+	// Uncompress each component from [0,1] to [-1,1].
+    float3 normalT = 2.0f * normalMapSample - 1.0f;
+
+	// Build orthonormal basis.
+    float3 N = unitNormalW;
+    float3 T = normalize(tangentW - dot(tangentW, N) * N);
+    float3 B = cross(N, T);
+
+    float3x3 TBN = float3x3(T, B, N);
+
+	// Transform from tangent space to world space.
+    float3 bumpedNormalW = mul(normalT, TBN);
+
+    return bumpedNormalW;
+}

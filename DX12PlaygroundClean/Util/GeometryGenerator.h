@@ -5,7 +5,7 @@ struct VertexComplex
 {
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
-	XMFLOAT3 TagentU;
+	XMFLOAT3 TangentU;
 	XMFLOAT2 TexCoord;
 };
 
