@@ -1,6 +1,3 @@
-//***************************************************************************************
-// Default.hlsl by Frank Luna (C) 2015 All Rights Reserved.
-//***************************************************************************************
 
 #include "Common.hlsl"
 
@@ -16,7 +13,8 @@ struct VertexIn
 struct VertexOut
 {
 	float4 PosH    : SV_POSITION;
-	float3 PosW    : POSITION;
+    float4 ShadowPosH : POSITION0;
+    float3 PosW    : POSITION1;
 	float3 NormalW : NORMAL;
     float3 TangentW : TANGENT;
     float2 TexC    : TEXCOORD;
@@ -49,6 +47,7 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 	// Output vertex attributes for interpolation across triangle.
 	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), texTransform);
 	vout.TexC = mul(texC, matData.MatTransform).xy;
+    vout.ShadowPosH = mul(posW, gShadowTransform);
 
 	return vout;
 }
@@ -75,7 +74,7 @@ float4 PS(VertexOut pin) : SV_Target
 
 
     // Dynamically look up the texture in the array.
-	diffuseAlbedo *= gTextureMaps[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
+    diffuseAlbedo *= gTextureMaps[diffuseTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
 	// Vector from point being lit to eye.
 	float3 toEyeW = normalize(gEyePosW - pin.PosW);
@@ -83,11 +82,13 @@ float4 PS(VertexOut pin) : SV_Target
 	// Light terms.
 	float4 ambient = gAmbientLight * diffuseAlbedo;
 
+    float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);
+    shadowFactor[0] = CalcShadowFactor(pin.ShadowPosH);
+
     const float shininess = (1.0f - roughness) * normalMapSample.a;
 	Material mat = { diffuseAlbedo, fresnelR0, shininess };
-	float3 shadowFactor = 1.0f;
 	float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
-		pin.NormalW, toEyeW, shadowFactor);
+		bumpedNormalW, toEyeW, shadowFactor);
 
 	float4 litColor = ambient + directLight;
 

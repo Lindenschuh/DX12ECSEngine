@@ -6,7 +6,7 @@ struct OOPRenderItemDesc
 	std::string GeometryName;
 	std::string SubMeshName;
 	std::string MaterialName;
-	RenderLayer Layer;
+	RenderLayer::RenderLayer Layer;
 	D3D_PRIMITIVE_TOPOLOGY PrimitiveType;
 };
 
@@ -15,7 +15,7 @@ class OOPRenderCompoment : public IComponent
 private:
 	DX12Renderer* renderer;
 
-	RenderLayer layer = RenderLayer::Opaque;
+	RenderLayer::RenderLayer layer = RenderLayer::Opaque;
 	XMFLOAT4X4 textureTransform = Identity4x4();
 	u32 renderItemID = -1;
 	GeometryID GeoIndex = -1;

@@ -64,15 +64,20 @@ TextureID TextureSystem::GetSkyBoxID()
 
 void TextureSystem::UploadTextures()
 {
+	mSkyboxIndex = mAllTextures.size();
+	mShadowMapIndex = mSkyboxIndex + 1;
+	mNullCubemapIndex = mShadowMapIndex + 1;
+	mNullTextureIndex = mNullCubemapIndex + 1;
+
 	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
 	// Texutures + skybox;
-	texHeapDesc.NumDescriptors = mAllTextures.size() + 1;
+	texHeapDesc.NumDescriptors = mAllTextures.size() + 4;
 	texHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	texHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	HR(mDXContext->mD3dDevice->CreateDescriptorHeap(&texHeapDesc,
-		IID_PPV_ARGS(&mDXContext->mTextureHeap)));
+		IID_PPV_ARGS(&mTextureHeap)));
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mDXContext->
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(
 		mTextureHeap->GetCPUDescriptorHandleForHeapStart());
 
 	for (int i = 0; i < mAllTextures.size(); i++)
@@ -109,6 +114,21 @@ void TextureSystem::UploadTextures()
 	texSRVDesc.TextureCube.MipLevels = resourceDesc.MipLevels;
 	texSRVDesc.Format = resourceDesc.Format;
 	mDXContext->mD3dDevice->CreateShaderResourceView(mSkybox.Resource.Get(), &texSRVDesc, hDescriptor);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE srvCpuStart = mTextureHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuStart = mTextureHeap->GetGPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE nullCpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, mNullCubemapIndex, mDXContext->mCbvSrvUavDescriptorSize);
+	mNullGPUHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, mNullCubemapIndex, mDXContext->mCbvSrvUavDescriptorSize);
+
+	mDXContext->mD3dDevice->CreateShaderResourceView(nullptr, &texSRVDesc, nullCpuHandle);
+	nullCpuHandle.Offset(1, mDXContext->mCbvSrvUavDescriptorSize);
+
+	texSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	texSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texSRVDesc.Texture2D.MostDetailedMip = 0;
+	texSRVDesc.Texture2D.MipLevels = 1;
+	texSRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	mDXContext->mD3dDevice->CreateShaderResourceView(nullptr, &texSRVDesc, nullCpuHandle);
 }
 
 TextureSystem::~TextureSystem()

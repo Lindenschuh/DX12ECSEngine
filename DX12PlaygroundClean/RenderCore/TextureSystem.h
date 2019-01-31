@@ -29,9 +29,16 @@ private:
 	std::vector<Texture> mAllTextures;
 	std::vector<TextureOptions> mTexOptions;
 	std::unordered_map<std::string, TextureID> mTextureIndex;
-
 	Texture mSkybox;
+
 public:
+	ComPtr<ID3D12DescriptorHeap> mTextureHeap;
+	u32 mSkyboxIndex;
+	u32 mShadowMapIndex;
+	u32 mNullCubemapIndex;
+	u32 mNullTextureIndex;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE mNullGPUHandle;
+
 	TextureSystem(DX12Context* DXContext);
 	TextureID	LoadTexture(std::string name, std::wstring path, TextureOptions& opt);
 	void	LoadSkybox(std::string name, std::wstring path);

@@ -4,19 +4,30 @@
 #include "../Util/Timer.h"
 #include "../Util/Waves.h"
 #include "DXHelpers.h"
-
-enum RenderLayer
+namespace PassConstantIndex
 {
-	Opaque = 0,
-	Skybox,
-	Mirrors,
-	Reflected,
-	AlphaTest,
-	Transparent,
-	Shadow,
-	Count
-};
-
+	enum  PassConstantIndex
+	{
+		MainPass = 0,
+		ShadowPass,
+		Count
+	};
+}
+namespace RenderLayer
+{
+	enum RenderLayer
+	{
+		Opaque = 0,
+		Skybox,
+		Mirrors,
+		Reflected,
+		AlphaTest,
+		Transparent,
+		Shadow,
+		ShadowDebug,
+		Count
+	};
+}
 struct InstanceData
 {
 	XMFLOAT4X4 World = Identity4x4();
@@ -92,12 +103,6 @@ typedef struct Submesh
 	DirectX::BoundingBox Bounds;
 } Submesh;
 
-typedef struct ObjectConstants
-{
-	XMFLOAT4X4 World = Identity4x4();
-	XMFLOAT4X4 TextureTransform = Identity4x4();
-} ObjectConstants;
-
 typedef struct MeshGeometry
 {
 	u32 GeometryIndex;
@@ -146,9 +151,9 @@ typedef struct MeshGeometry
 
 struct Light
 {
-	XMFLOAT3 Strength = { 0.5f,0.5f,0.5f };
+	XMFLOAT3 Strength = { 0.9f, 0.9f, 0.9f };
 	float FalloffStart = 1.0f;
-	XMFLOAT3 Direction = { 0.0f,-1.0f,0.0f };
+	XMFLOAT3 Direction = { 0.57735f, -0.57735f, 0.57735f };
 	float FalloffEnd = 10.0f;
 	XMFLOAT3 Position = { 0.0f,0.0f,0.0f };
 	float SpotPower = 64.0f;
@@ -222,6 +227,7 @@ struct PassConstants
 	XMFLOAT4X4 InvProj = Identity4x4();
 	XMFLOAT4X4 ViewProj = Identity4x4();
 	XMFLOAT4X4 InvViewProj = Identity4x4();
+	XMFLOAT4X4 ShadowTransform = Identity4x4();
 	XMFLOAT3 EyePosW = { 0.0f, 0.0f, 0.0f };
 	float cbPerObjectPad1 = 0.0f;
 	XMFLOAT2 RenderTargetSize = { 0.0f ,0.0f };
@@ -249,7 +255,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 	{
 		std::vector<RenderItem>& rItems = allRItems[lay];
 
-		if (lay == RenderLayer::Skybox)
+		if (lay == RenderLayer::Skybox || lay == RenderLayer::ShadowDebug)
 		{
 			RenderItem& rItem = rItems[0];
 			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[0].World);
@@ -298,7 +304,7 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 
 void static UpdateMainPassCB(PassConstants& mainPassCB,
 	UploadBuffer<PassConstants>* passCB, XMFLOAT4X4 viewMat, XMFLOAT3 eyePos, XMFLOAT4X4 mProj,
-	DX12Context* mDXCon, GameTimer* mTimer, FogData fogData)
+	DX12Context* mDXCon, GameTimer* mTimer, FogData fogData, XMFLOAT4X4 shadowTransform, Light mainLight)
 {
 	XMMATRIX view = XMLoadFloat4x4(&viewMat);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
@@ -308,12 +314,15 @@ void static UpdateMainPassCB(PassConstants& mainPassCB,
 	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
 	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
+	XMMATRIX shaTransformMat = XMLoadFloat4x4(&shadowTransform);
+
 	XMStoreFloat4x4(&mainPassCB.View, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&mainPassCB.InvView, XMMatrixTranspose(invView));
 	XMStoreFloat4x4(&mainPassCB.Proj, XMMatrixTranspose(proj));
 	XMStoreFloat4x4(&mainPassCB.InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&mainPassCB.ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&mainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+	XMStoreFloat4x4(&mainPassCB.ShadowTransform, XMMatrixTranspose(shaTransformMat));
 	mainPassCB.EyePosW = eyePos;
 	mainPassCB.RenderTargetSize = XMFLOAT2(mDXCon->Window->width, mDXCon->Window->height);
 	mainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mDXCon->Window->width, 1.0f / mDXCon->Window->height);
@@ -322,10 +331,10 @@ void static UpdateMainPassCB(PassConstants& mainPassCB,
 	mainPassCB.DeltaTime = mTimer->mDeltaTime;
 	mainPassCB.TotalTime = mTimer->GetGameTime();
 	mainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	mainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
+	mainPassCB.Lights[0].Direction = mainLight.Direction;
+	mainPassCB.Lights[0].Strength = mainLight.Strength;
 
 	mainPassCB.FogData = fogData;
 
-	passCB->CopyData(0, mainPassCB);
+	passCB->CopyData(PassConstantIndex::MainPass, mainPassCB);
 }

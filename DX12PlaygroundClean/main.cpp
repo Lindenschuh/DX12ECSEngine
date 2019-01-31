@@ -7,6 +7,7 @@
 #include "ECS/CameraSystem.h"
 #include "ECS/PositionSystem.h"
 #include "ECS/ControllSystem.h"
+#include "ECS/LightSystem.h"
 
 static float GetHillsHeight(float x, float z)
 {
@@ -39,8 +40,10 @@ static void buildBoxGeo(GeometrySystem* system)
 {
 	GeometryGenerator geoGen;
 	MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
+	MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
-	std::vector<Vertex> vertices(box.Vertices.size());
+	std::vector<Vertex> vertices(box.Vertices.size() + quad.Vertices.size());
+	std::vector<u16> indicies;
 	for (size_t i = 0; i < box.Vertices.size(); ++i)
 	{
 		auto& p = box.Vertices[i].Position;
@@ -50,21 +53,38 @@ static void buildBoxGeo(GeometrySystem* system)
 		vertices[i].Tangent = box.Vertices[i].TangentU;
 	}
 
+	indicies.insert(indicies.end(), box.Indicies.begin(), box.Indicies.end());
+	indicies.insert(indicies.end(), quad.Indicies.begin(), quad.Indicies.end());
+
+	for (size_t i = 0; i < quad.Vertices.size(); ++i)
+	{
+		auto& p = quad.Vertices[i].Position;
+		vertices[i + box.Vertices.size()].Pos = p;
+		vertices[i + box.Vertices.size()].Normal = quad.Vertices[i].Normal;
+		vertices[i + box.Vertices.size()].TexC = quad.Vertices[i].TexCoord;
+		vertices[i + box.Vertices.size()].Tangent = quad.Vertices[i].TangentU;
+	}
+
 	XMFLOAT3 boxCenterAndExtend = { 4.0f,4.0f,4.0f };
 	BoundingBox boxBound(boxCenterAndExtend, boxCenterAndExtend);
 
-	Submesh sm = { box.Indicies.size(),0,0,boxBound };
+	Submesh smBox = { box.Indicies.size(),0,0,boxBound };
+	Submesh smQuad = { quad.Indicies.size(), box.Indicies.size(), box.Vertices.size() };
 
-	std::string subMeshName = "box";
+	std::string subMeshBox = "box";
+	std::string subMeshQuad = "quad";
 	GeoInfo gInfo;
 	gInfo.Name = "boxGeo";
 	gInfo.verts = vertices.data();
 	gInfo.vertCount = vertices.size();
-	gInfo.indicies = box.Indicies.data();
-	gInfo.indiceCount = box.Indicies.size();
-	gInfo.SubmeshNames = &subMeshName;
-	gInfo.submeshs = &sm;
-	gInfo.submeshCount = 1;
+	gInfo.indicies = indicies.data();
+	gInfo.indiceCount = indicies.size();
+
+	std::string subMeshName[] = { subMeshBox , subMeshQuad };
+	gInfo.SubmeshNames = subMeshName;
+	Submesh sms[] = { smBox, smQuad };
+	gInfo.submeshs = sms;
+	gInfo.submeshCount = 2;
 
 	system->LoadGeometry(gInfo);
 }
@@ -106,16 +126,37 @@ static void CreatePSO(DX12Renderer* ren)
 	ren->mShaderSystem->LoadShader("standardVS", L"Shaders\\color.hlsl", VertexShader);
 	ren->mShaderSystem->LoadShader("opaquePS", L"Shaders\\color.hlsl", PixelShader);
 	ren->mShaderSystem->LoadShader("alphaTestPS", L"Shaders\\color.hlsl", PixelShader, alphaTestDefines);
+	ren->mShaderSystem->LoadShader("shadowVS", L"Shaders\\shadow.hlsl", VertexShader);
+	ren->mShaderSystem->LoadShader("shadowPS", L"Shaders\\shadow.hlsl", PixelShader);
+
+	ren->mShaderSystem->LoadShader("shadowDebugVS", L"Shaders\\shadowDebug.hlsl", VertexShader);
+	ren->mShaderSystem->LoadShader("shadowDebugPS", L"Shaders\\shadowDebug.hlsl", PixelShader);
 
 	PSOOptions AlphaTestOptions = DefaultPSOOptions();
 
 	ren->mPSOSystem->BuildPSO("opaque", "standardVS", "opaquePS", DefaultPSOOptions());
 	ren->mPSOSystem->BuildTransparentPSO("transparent", "standardVS", "opaquePS", DefaultPSOOptions());
 	ren->mPSOSystem->BuildTransparentPSO("alphaTest", "standardVS", "alphaTestPS", DefaultPSOOptions());
+	ren->mPSOSystem->BuildShadowPSO("shadow", "shadowVS", "shadowPS", DefaultPSOOptions());
+	ren->mPSOSystem->BuildPSO("debug", "shadowDebugVS", "shadowDebugPS", DefaultPSOOptions());
 
 	ren->SetLayerPSO("opaque", RenderLayer::Opaque);
 	ren->SetLayerPSO("transparent", RenderLayer::Transparent);
 	ren->SetLayerPSO("alphaTest", RenderLayer::AlphaTest);
+	ren->SetLayerPSO("shadow", RenderLayer::Shadow);
+	ren->SetLayerPSO("debug", RenderLayer::ShadowDebug);
+}
+
+static void CreateShadowDebugView(DX12Renderer* render)
+{
+	EntityID eIdDebug = gObjects.addEntity("debug");
+	RenderItemDesc desc;
+	desc.GeometryName = "boxGeo";
+	desc.MaterialName = "brick";
+	desc.SubMeshName = "quad";
+	desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	desc.Layer = RenderLayer::ShadowDebug;
+	CreateRenderItem(&desc, render, eIdDebug, &gObjects);
 }
 
 //ECS
@@ -135,6 +176,8 @@ int main()
 	FogSystem fogSystem(&gObjects, render);
 	ControllSystem ConSystem(&gObjects, &PosSystem);
 	VisibilitySystem visSystem(&gObjects);
+	LightSystem liSystem(render);
+
 	int boxCount = 1000;
 	int maxWidth = (boxCount / 100);
 	int height = 0;
@@ -169,6 +212,8 @@ int main()
 	render->mCameraSystem->AddObjectToSystem(cameraId);
 	ConSystem.AddToSystem(cameraId);
 
+	CreateShadowDebugView(render);
+
 	render->FinishSetup();
 
 	EntityID fogId = gObjects.addEntity("Fog");
@@ -182,6 +227,7 @@ int main()
 		//fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		visSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		liSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
 		render->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);

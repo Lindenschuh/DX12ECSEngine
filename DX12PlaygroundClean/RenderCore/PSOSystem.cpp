@@ -133,41 +133,44 @@ void PSOSystem::BuildStencilReflectionsPSO(std::string name, std::string VSName,
 
 void PSOSystem::BuildShadowPSO(std::string name, std::string VSName, std::string PSName, PSOOptions & options)
 {
-	D3D12_BLEND_DESC desc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
-	transparencyBlendDesc.BlendEnable = true;
-	transparencyBlendDesc.LogicOpEnable = false;
-	transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-	transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-	transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-	transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
-	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	Shader VS = mShaderSystem->GetShader(VSName);
+	Shader PS = mShaderSystem->GetShader(PSName);
 
-	desc.RenderTarget[0] = transparencyBlendDesc;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = options.Layout;
+	psoDesc.pRootSignature = mRootSignature;
+	psoDesc.VS =
+	{
+		VS.ShaderBlob->GetBufferPointer(),
+		VS.ShaderBlob->GetBufferSize()
+	};
+	psoDesc.PS =
+	{
+		PS.ShaderBlob->GetBufferPointer(),
+		PS.ShaderBlob->GetBufferSize()
+	};
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.RasterizerState.DepthBias = 100000;
+	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 
-	D3D12_DEPTH_STENCIL_DESC shadowStencilDesc;
-	shadowStencilDesc.DepthEnable = true;
-	shadowStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	shadowStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	shadowStencilDesc.StencilEnable = true;
-	shadowStencilDesc.StencilReadMask = 0xff;
-	shadowStencilDesc.StencilWriteMask = 0xff;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = options.SampleMask;
+	psoDesc.PrimitiveTopologyType = options.PrimitiveTopologyType;
+	psoDesc.NumRenderTargets = 0;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = mDXContext->mDepthStencilFormat;
 
-	shadowStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	shadowStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	shadowStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_INCR;
-	shadowStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+	PSO pso = {};
+	pso.options = options;
+	pso.PSName = PSName;
+	pso.VSName = VSName;
 
-	// We are not rendering backfacing polygons, so these settings do not matter.
-	shadowStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	shadowStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	shadowStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_INCR;
-	shadowStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-
-	BuildPSO(name, VSName, PSName, options, &desc, &shadowStencilDesc);
+	HR(mDXContext->mD3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso.PSOData)));
+	mPSOs[name] = pso;
 }
 
 void PSOSystem::BuildSkyboxPSO(std::string name, std::string VSName, std::string PSName, PSOOptions & options)

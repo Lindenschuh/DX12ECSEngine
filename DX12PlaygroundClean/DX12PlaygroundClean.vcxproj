@@ -127,6 +127,7 @@
     <ClCompile Include="ECS\CameraSystem.cpp" />
     <ClCompile Include="ECS\ControllSystem.cpp" />
     <ClCompile Include="ECS\FogSystem.cpp" />
+    <ClCompile Include="ECS\LightSystem.cpp" />
     <ClCompile Include="ECS\PositionSystem.cpp" />
     <ClCompile Include="RenderCore\DX12Context.cpp" />
     <ClCompile Include="RenderCore\DXHelpers.cpp" />
@@ -142,6 +143,7 @@
     <ClCompile Include="RenderCore\GeometrySystem.cpp" />
     <ClCompile Include="RenderCore\MaterialSystem.cpp" />
     <ClCompile Include="RenderCore\PSOSystem.cpp" />
+    <ClCompile Include="RenderCore\Shadowmap.cpp" />
     <ClCompile Include="RenderCore\TextureSystem.cpp" />
     <ClCompile Include="RenderCore\ShaderSystem.cpp" />
     <ClCompile Include="Util\GeometryGenerator.cpp" />
@@ -156,6 +158,7 @@
     <ClInclude Include="ECS\ControllSystem.h" />
     <ClInclude Include="ECS\EnitityData.h" />
     <ClInclude Include="ECS\FogSystem.h" />
+    <ClInclude Include="ECS\LightSystem.h" />
     <ClInclude Include="ECS\PositionSystem.h" />
     <ClInclude Include="Core\Default.h" />
     <ClInclude Include="RenderCore\DX12Context.h" />
@@ -178,6 +181,7 @@
     <ClInclude Include="RenderCore\MaterialSystem.h" />
     <ClInclude Include="RenderCore\PSOSystem.h" />
     <ClInclude Include="RenderCore\RootSignatureSystem.h" />
+    <ClInclude Include="RenderCore\Shadowmap.h" />
     <ClInclude Include="RenderCore\TextureSystem.h" />
     <ClInclude Include="RenderCore\ShaderSystem.h" />
     <ClInclude Include="Util\GeometryGenerator.h" />

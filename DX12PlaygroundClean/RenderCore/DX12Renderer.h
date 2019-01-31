@@ -9,6 +9,7 @@
 #include "FrameResourceSystem.h"
 #include "ShaderSystem.h"
 #include "PSOSystem.h"
+#include "Shadowmap.h"
 
 #include "DXHelpers.h"
 #include "DXData.h"
@@ -24,10 +25,11 @@ public:
 	void Draw();
 	void Update(float time, float deltaTime);
 	void FinishSetup();
-	void AddRenderItem(std::string name, RenderItem r, RenderLayer rl);
+	void AddRenderItem(std::string name, RenderItem r, RenderLayer::RenderLayer rl);
 	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
-	void SetLayerPSO(std::string psoName, RenderLayer layer);
-	std::string GetLayerPSO(RenderLayer layer);
+	void SetLayerPSO(std::string psoName, RenderLayer::RenderLayer layer);
+	void MainLightData(XMFLOAT3 direction, XMFLOAT3 strength);
+	std::string GetLayerPSO(RenderLayer::RenderLayer layer);
 
 	RenderItem* GetRenderItem(std::string name);
 
@@ -40,14 +42,18 @@ public:
 	PSOSystem* mPSOSystem;
 	FrameResourceSystem* mFrameResourceSystem;
 	CameraSystem* mCameraSystem;
+	ShadowMap* mShadowMap;
 private:
-	std::unordered_map<std::string, std::pair<RenderLayer, u32>> mRenderItemPair;
+	std::unordered_map<std::string, std::pair<RenderLayer::RenderLayer, u32>> mRenderItemPair;
 	ComPtr<ID3D12RootSignature> mRootSignature;
 	DX12Context* mDXCon;
 	std::string LayerPSO[RenderLayer::Count];
 	FogData mFogData;
+	ShadowPassData mSPData;
+	BoundingSphere mSceneBounds;
 	PassConstants mMainPassCB;
-
+	PassConstants mShadowPass;
+	Light mDirectinalLight;
 	void BuildSkyBox();
 	//Methods
 private:
@@ -58,6 +64,7 @@ private:
 	void ProcessGlobalEvents();
 	void CalculateFrameStats();
 	void BuildRootSignature();
+	void DrawShadowMap();
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList,
 		std::vector<RenderItem>&rItems, u32& INOUToffset);
 };

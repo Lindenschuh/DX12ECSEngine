@@ -65,7 +65,7 @@ struct RenderItemDesc
 	std::string GeometryName;
 	std::string SubMeshName;
 	std::string MaterialName;
-	RenderLayer Layer;
+	RenderLayer::RenderLayer Layer;
 	D3D_PRIMITIVE_TOPOLOGY PrimitiveType;
 };
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "../Core/Default.h"
 #include "EntitySystem.h"
 
 class CameraSystem

@@ -44,7 +44,7 @@ struct VelocityComponent
 };
 struct RenderComponent
 {
-	RenderLayer layer = RenderLayer::Opaque;
+	RenderLayer::RenderLayer layer = RenderLayer::Opaque;
 	XMFLOAT4X4 textureTransform = Identity4x4();
 	u32 renderItemID = -1;
 	GeometryID GeoIndex = -1;

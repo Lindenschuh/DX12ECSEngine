@@ -42,8 +42,9 @@ struct MaterialData
 };
 
 TextureCube gCubeMap : register(t0);
+Texture2D gShadowMap : register(t1);
 
-Texture2D gTextureMaps[4] : register(t1);
+Texture2D gTextureMaps[4] : register(t2);
 
 StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
 StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
@@ -54,6 +55,7 @@ SamplerState gsamLinearWrap       : register(s2);
 SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
+SamplerComparisonState gsamShadow : register(s6);
 
 cbuffer cbPass : register(b0)
 {
@@ -63,6 +65,7 @@ cbuffer cbPass : register(b0)
 	float4x4 gInvProj;
 	float4x4 gViewProj;
 	float4x4 gInvViewProj;
+    float4x4 gShadowTransform;
 	float3 gEyePosW;
 	float cbPerObjectPad1;
 	float2 gRenderTargetSize;
@@ -101,4 +104,33 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
     float3 bumpedNormalW = mul(normalT, TBN);
 
     return bumpedNormalW;
+}
+
+float CalcShadowFactor(float4 shdaowPosH)
+{
+    shdaowPosH.xyz /= shdaowPosH.w;
+    
+    float depth = shdaowPosH.z;
+
+    uint width, height, numMips;
+    gShadowMap.GetDimensions(0, width, height, numMips);
+
+    float dx = 1.0f / (float) width;
+
+    float percentLit = 0.0f;
+    const float2 offsets[9] =
+    {
+        float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
+        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+        float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+    };
+
+    [unroll]
+    for (int i = 0; i < 9; i++)
+    {
+        percentLit += gShadowMap.SampleCmpLevelZero(gsamShadow, 
+        shdaowPosH.xy + offsets[i], depth).r;
+
+    }
+    return percentLit / 9.0f;
 }

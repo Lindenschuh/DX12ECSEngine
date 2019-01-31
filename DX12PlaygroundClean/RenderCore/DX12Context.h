@@ -121,8 +121,6 @@ public:
 	ComPtr<ID3D12DescriptorHeap> mRTVHeap;
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;
 	ComPtr<ID3D12DescriptorHeap> mSRVHeap;
-	ComPtr<ID3D12DescriptorHeap>  mTextureHeap;
-	ComPtr<ID3D12DescriptorHeap> mSkyBoxHeap;
 
 	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
@@ -144,7 +142,7 @@ public:
 	DX12Context(u32 width, u32 height, const char* windowTitle);
 	void flushCommandQueue();
 	void ExecuteCmdList();
-	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> GetStaticSamplers();
 	void resize(u32 width, u32 height);
 private:
 	void initDX12(void);

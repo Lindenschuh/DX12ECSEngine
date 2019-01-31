@@ -36,8 +36,21 @@ void DX12Renderer::FinishSetup()
 		}
 	}
 
-	mFrameResourceSystem = new FrameResourceSystem(gNumFrameResources, mDXCon, 1,
+	mFrameResourceSystem = new FrameResourceSystem(gNumFrameResources, mDXCon, PassConstantIndex::Count,
 		instanceCount, mMaterialSystem->GetMaterialCount());
+
+	mShadowMap = new ShadowMap(
+		2048, 2048,
+		mDXCon->mD3dDevice.Get(),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(mTextureSystem->mTextureHeap->GetCPUDescriptorHandleForHeapStart(),
+			mTextureSystem->mShadowMapIndex, mDXCon->mCbvSrvUavDescriptorSize),
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(mTextureSystem->mTextureHeap->GetGPUDescriptorHandleForHeapStart(),
+			mTextureSystem->mShadowMapIndex, mDXCon->mCbvSrvUavDescriptorSize),
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(mDXCon->mDSVHeap->GetCPUDescriptorHandleForHeapStart(),
+			1, mDXCon->mDsvDescriptorSize)
+	);
 
 	HR(mDXCon->mCmdList->Close());
 	ID3D12CommandList* cmdLists[] = { mDXCon->mCmdList.Get() };
@@ -57,26 +70,32 @@ void DX12Renderer::SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange)
 	mFogData.FogRange = fogRange;
 }
 
-void DX12Renderer::SetLayerPSO(std::string psoName, RenderLayer layer)
+void DX12Renderer::SetLayerPSO(std::string psoName, RenderLayer::RenderLayer layer)
 {
 	LayerPSO[layer] = psoName;
 }
 
-std::string DX12Renderer::GetLayerPSO(RenderLayer layer)
+void DX12Renderer::MainLightData(XMFLOAT3 direction, XMFLOAT3 strength)
+{
+	mDirectinalLight.Direction = direction;
+	mDirectinalLight.Strength = strength;
+}
+
+std::string DX12Renderer::GetLayerPSO(RenderLayer::RenderLayer layer)
 {
 	return LayerPSO[layer];
 }
 
 RenderItem * DX12Renderer::GetRenderItem(std::string name)
 {
-	std::pair<RenderLayer, u32> renderPair = mRenderItemPair[name];
+	std::pair<RenderLayer::RenderLayer, u32> renderPair = mRenderItemPair[name];
 	return &mRItems[renderPair.first][renderPair.second];
 }
 
-void DX12Renderer::AddRenderItem(std::string name, RenderItem r, RenderLayer rl)
+void DX12Renderer::AddRenderItem(std::string name, RenderItem r, RenderLayer::RenderLayer rl)
 {
 	mRItems[rl].push_back(r);
-	mRenderItemPair[name] = std::pair<RenderLayer, u32>(rl, mRItems[rl].size() - 1);
+	mRenderItemPair[name] = std::pair<RenderLayer::RenderLayer, u32>(rl, mRItems[rl].size() - 1);
 }
 bool DX12Renderer::IsWindowActive(void)
 {
@@ -96,6 +115,36 @@ bool DX12Renderer::IsWindowActive(void)
 	return true;
 }
 
+void DX12Renderer::DrawShadowMap()
+{
+	mDXCon->mCmdList->RSSetViewports(1, &mShadowMap->mViewPort);
+	mDXCon->mCmdList->RSSetScissorRects(1, &mShadowMap->mScissorRec);
+	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->mShadowMapResource.Get(),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE
+	));
+
+	u32 passCBByteSize = CalcConstantBufferByteSize(sizeof(PassConstants));
+	mDXCon->mCmdList->ClearDepthStencilView(mShadowMap->mCpuDsvShadowMapHandle,
+		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	mDXCon->mCmdList->OMSetRenderTargets(0, nullptr, false, &mShadowMap->mCpuDsvShadowMapHandle);
+
+	ID3D12Resource* passCB = mFrameResourceSystem->GetCurrentFrameResource().PassCB->Resource();
+	D3D12_GPU_VIRTUAL_ADDRESS passCbAdress =
+		passCB->GetGPUVirtualAddress() + PassConstantIndex::ShadowPass * passCBByteSize;
+
+	mDXCon->mCmdList->SetGraphicsRootConstantBufferView(2, passCbAdress);
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Shadow]).PSOData.Get());
+
+	u32 drawedObjects = 0;
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], drawedObjects);
+
+	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->mShadowMapResource.Get(),
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		D3D12_RESOURCE_STATE_GENERIC_READ
+	));
+}
 void DX12Renderer::Draw()
 {
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
@@ -104,6 +153,20 @@ void DX12Renderer::Draw()
 	HR(cmdListAlloc->Reset());
 
 	HR(mDXCon->mCmdList->Reset(cmdListAlloc.Get(), mPSOSystem->GetPSO(LayerPSO[RenderLayer::Opaque]).PSOData.Get()));
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mTextureSystem->mTextureHeap.Get() };
+	mDXCon->mCmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mDXCon->mCmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	auto materialBuffer = currentFrameResource.MaterialBuffer->Resource();
+	mDXCon->mCmdList->SetGraphicsRootShaderResourceView(1, materialBuffer->GetGPUVirtualAddress());
+
+	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, mTextureSystem->mNullGPUHandle);
+
+	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(4, mTextureSystem->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
+
+	DrawShadowMap();
 
 	mDXCon->mCmdList->RSSetViewports(1, &mDXCon->mViewPort);
 	mDXCon->mCmdList->RSSetScissorRects(1, &mDXCon->mScissorRect);
@@ -116,24 +179,15 @@ void DX12Renderer::Draw()
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	mDXCon->mCmdList->OMSetRenderTargets(1, &CurrentbackBufferView(), true, &DepthStencilView());
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mDXCon->mTextureHeap.Get() };
-	mDXCon->mCmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	mDXCon->mCmdList->SetGraphicsRootSignature(mRootSignature.Get());
-
-	auto materialBuffer = currentFrameResource.MaterialBuffer->Resource();
-	mDXCon->mCmdList->SetGraphicsRootShaderResourceView(1, materialBuffer->GetGPUVirtualAddress());
-
 	auto passCB = currentFrameResource.PassCB->Resource();
 	mDXCon->mCmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE skyTexDescriptor(mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
-	skyTexDescriptor.Offset(mTextureSystem->GetSkyBoxID(), mDXCon->mCbvSrvUavDescriptorSize);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE skyTexDescriptor(mTextureSystem->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
+	skyTexDescriptor.Offset(mTextureSystem->mSkyboxIndex, mDXCon->mCbvSrvUavDescriptorSize);
 	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(3, skyTexDescriptor);
 
-	mDXCon->mCmdList->SetGraphicsRootDescriptorTable(4, mDXCon->mTextureHeap->GetGPUDescriptorHandleForHeapStart());
-
 	u32 drawedObjects = 0;
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Opaque]).PSOData.Get());
 	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Skybox]).PSOData.Get());
@@ -144,6 +198,9 @@ void DX12Renderer::Draw()
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Transparent]).PSOData.Get());
 	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Transparent], drawedObjects);
+
+	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::ShadowDebug]).PSOData.Get());
+	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::ShadowDebug], drawedObjects);
 
 	mDXCon->mCmdList->SetDescriptorHeaps(1, mDXCon->mSRVHeap.GetAddressOf());
 	ImGui::Render();
@@ -174,9 +231,13 @@ void DX12Renderer::Update(float time, float deltaTime)
 
 	UpdateObjectPassCB(mRItems, currentFrameResource.InstanceBuffer, comp.ViewMat, comp.FrustrumBounds);
 
+	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	mSceneBounds.Radius = 500.0f;
 	mMaterialSystem->UpdateMaterials(currentFrameResource.MaterialBuffer);
+	UpdateShadowTranformation(mDirectinalLight.Direction, mSceneBounds, mSPData);
+	UpdateShadowPass(mShadowPass, currentFrameResource.PassCB, mSPData, mDXCon->Window->width, mDXCon->Window->height);
 	UpdateMainPassCB(mMainPassCB, currentFrameResource.PassCB, comp.ViewMat, mCameraSystem->GetMainCameraPos()
-		, comp.ProjMat, mDXCon, mTimer, mFogData);
+		, comp.ProjMat, mDXCon, mTimer, mFogData, mSPData.ShadowTransform, mDirectinalLight);
 }
 
 void DX12Renderer::ProcessGlobalEvents()
@@ -194,10 +255,10 @@ void DX12Renderer::ProcessGlobalEvents()
 void DX12Renderer::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTableSkyBox;
-	texTableSkyBox.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	texTableSkyBox.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0);
 
 	CD3DX12_DESCRIPTOR_RANGE texTable;
-	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, gNumOfTexures, 1, 0);
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, gNumOfTexures, 2, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
 	slotRootParameter[0].InitAsShaderResourceView(0, 1);
@@ -306,7 +367,7 @@ void DX12Renderer::BuildSkyBox()
 	XMStoreFloat4x4(&SkyBoxData.World, XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
 	skybox.Instances.push_back(SkyBoxData);
 
-	mRItems[Skybox].push_back(skybox);
+	mRItems[RenderLayer::Skybox].push_back(skybox);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentbackBufferView()

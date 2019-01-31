@@ -131,7 +131,7 @@ void DX12Context::ExecuteCmdList()
 	HR(mCmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 }
 
-std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> DX12Context::GetStaticSamplers()
+std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> DX12Context::GetStaticSamplers()
 {
 	// Applications usually only need a handful of samplers.  So just define them all up front
 	// and keep them available as part of the root signature.
@@ -182,10 +182,23 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> DX12Context::GetStaticSamplers(
 		0.0f,                              // mipLODBias
 		8);                                // maxAnisotropy
 
+	const CD3DX12_STATIC_SAMPLER_DESC shadow(
+		6, // shaderRegister
+		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
+		0.0f,                               // mipLODBias
+		16,                                 // maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,
+		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
+
 	return {
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
-		anisotropicWrap, anisotropicClamp };
+		anisotropicWrap, anisotropicClamp,
+		shadow
+	};
 }
 
 void DX12Context::buildDescriptorHeaps()
@@ -199,18 +212,18 @@ void DX12Context::buildDescriptorHeaps()
 		IID_PPV_ARGS(mRTVHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC depthStencilViewHeapDesc;
-	depthStencilViewHeapDesc.NumDescriptors = 1;
+	depthStencilViewHeapDesc.NumDescriptors = 2;
 	depthStencilViewHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	depthStencilViewHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	depthStencilViewHeapDesc.NodeMask = 0;
 	HR(mD3dDevice->CreateDescriptorHeap(&depthStencilViewHeapDesc,
 		IID_PPV_ARGS(mDSVHeap.GetAddressOf())));
 
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = 1;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	HR(mD3dDevice->CreateDescriptorHeap(&srvHeapDesc,
+	D3D12_DESCRIPTOR_HEAP_DESC guiTextureHeap = {};
+	guiTextureHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	guiTextureHeap.NumDescriptors = 1;
+	guiTextureHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	HR(mD3dDevice->CreateDescriptorHeap(&guiTextureHeap,
 		IID_PPV_ARGS(mSRVHeap.GetAddressOf())));
 }
 
