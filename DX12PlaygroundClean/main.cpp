@@ -8,6 +8,7 @@
 #include "ECS/PositionSystem.h"
 #include "ECS/ControllSystem.h"
 #include "ECS/LightSystem.h"
+#include "ECS/PhysicSystem.h"
 
 static float GetHillsHeight(float x, float z)
 {
@@ -177,6 +178,7 @@ int main()
 	ControllSystem ConSystem(&gObjects, &PosSystem);
 	VisibilitySystem visSystem(&gObjects);
 	LightSystem liSystem(render);
+	PhysicsSystem PSystem;
 
 	int boxCount = 1000;
 	int maxWidth = (boxCount / 100);
