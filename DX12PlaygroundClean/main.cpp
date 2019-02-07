@@ -178,7 +178,7 @@ int main()
 	ControllSystem ConSystem(&gObjects, &PosSystem);
 	VisibilitySystem visSystem(&gObjects);
 	LightSystem liSystem(render);
-	PhysicsSystem PSystem;
+	PhysicsSystem PSystem(&gObjects);
 
 	int boxCount = 1000;
 	int maxWidth = (boxCount / 100);
@@ -206,7 +206,8 @@ int main()
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		desc.Layer = RenderLayer::Opaque;
 		CreateRenderItem(&desc, render, eId, &gObjects);
-		globalMovement.AddToSystem(eId);
+		//globalMovement.AddToSystem(eId);
+		PSystem.AddDynamicToSystem(eId);
 		visSystem.AddToSystem(eId);
 	}
 
@@ -229,6 +230,7 @@ int main()
 		//fogSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		visSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		PSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		liSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 

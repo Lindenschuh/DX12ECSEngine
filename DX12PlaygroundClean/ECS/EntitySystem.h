@@ -11,6 +11,8 @@ struct EntityManger
 		FlagCamera = 1 << 2,
 		FlagVeloctiy = 1 << 3,
 		FlagFog = 1 << 4,
+		FlagDynamicPhysic = 1 << 5,
+		FlagStaticPhysic = 1 << 6,
 	};
 	std::vector<std::string> mNames;
 	//Data
@@ -19,6 +21,9 @@ struct EntityManger
 	std::vector<CameraComponent> mCameras;
 	std::vector<VelocityComponent> mVelocitys;
 	std::vector<FogComponent> mFogs;
+	std::vector<DynamicPhysicsComponent> mDynamicPhysics;
+	std::vector<StaticPhysicsComponent> mStaticPhysics;
+
 	//Flags for has it
 	std::vector<u32> mFlags;
 
@@ -31,6 +36,8 @@ struct EntityManger
 		mVelocitys.reserve(n);
 		mFlags.reserve(n);
 		mFogs.reserve(n);
+		mDynamicPhysics.reserve(n);
+		mStaticPhysics.reserve(n);
 	}
 
 	EntityID addEntity(const std::string&& name)
@@ -43,6 +50,8 @@ struct EntityManger
 		mVelocitys.push_back(VelocityComponent());
 		mFlags.push_back(FlagPosition);
 		mFogs.push_back(FogComponent());
+		mDynamicPhysics.push_back(DynamicPhysicsComponent());
+		mStaticPhysics.push_back(StaticPhysicsComponent());
 		return id;
 	}
 };

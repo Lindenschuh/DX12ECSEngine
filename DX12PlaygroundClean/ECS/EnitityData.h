@@ -1,6 +1,7 @@
 #pragma once
 #include "..\Core\Default.h"
 #include "..\RenderCore\DXData.h"
+#include <PxPhysicsAPI.h>
 
 typedef u32 EntityID;
 
@@ -24,6 +25,16 @@ struct CameraComponent
 	XMFLOAT4X4 ProjMat = Identity4x4();
 
 	BoundingFrustum FrustrumBounds;
+};
+
+struct DynamicPhysicsComponent
+{
+	physx::PxRigidDynamic* DynamicRigidBody = nullptr;
+};
+
+struct StaticPhysicsComponent
+{
+	physx::PxRigidStatic* StaticRigidBody = nullptr;
 };
 
 struct VelocityComponent

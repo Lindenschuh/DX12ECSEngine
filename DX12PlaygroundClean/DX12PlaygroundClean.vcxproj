@@ -70,12 +70,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)Ext\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)Ext\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)Ext\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)Ext\bin\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)Ext\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)Ext\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Ext\bin\Checked;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -93,7 +93,8 @@
       <ConformanceMode>false</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
