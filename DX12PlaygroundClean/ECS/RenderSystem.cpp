@@ -37,10 +37,19 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 			PositionComponent& pComp = eManager->mPositions[eId];
 			RenderItem& rItem = renderer->mRItems[rComp.layer][rComp.renderItemID];
 			InstanceData&  instance = rItem.Instances[rItem.InstanceUpdated++];
+			FXMVECTOR position = XMLoadFloat3(&pComp.Position);
+			FXMVECTOR rotation = XMLoadFloat4(&pComp.RoationQuat);
+			FXMVECTOR scaling = XMLoadFloat3(&pComp.Scaling);
 
-			XMStoreFloat4x4(&instance.World,
-				XMMatrixMultiply(XMMatrixIdentity(),
-					XMMatrixTranslation(pComp.Position.x, pComp.Position.y, pComp.Position.z)));
+			XMStoreFloat4x4(
+				&instance.World,
+				XMMatrixAffineTransformation(
+					scaling,
+					XMQuaternionIdentity(),
+					rotation,
+					position
+				));
+
 			instance.MaterialIndex = rComp.MatCBIndex;
 			instance.TexTransform = rComp.textureTransform;
 		}

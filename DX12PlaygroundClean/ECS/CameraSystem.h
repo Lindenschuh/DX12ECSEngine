@@ -26,6 +26,6 @@ public:
 	void SetMainCamera(EntityID id);
 	EntityID GetMainCamera();
 	CameraComponent& GetMainCameraComp();
-	XMFLOAT3 GetMainCameraPos();
+	XMFLOAT3 GetMainCameraPos() const;
 	void UpdateSystem(float time, float deltaTime);
 };

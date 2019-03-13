@@ -29,19 +29,32 @@ void PositionSystem::Pitch(EntityID id, float angle)
 {
 	PositionComponent& comp = mEManager->mPositions[id];
 
-	XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&comp.Right), angle);
+	XMVECTOR roationQuaternion = XMQuaternionRotationAxis(XMLoadFloat3(&comp.Right), angle);
+	XMVECTOR resQ = XMQuaternionMultiply(
+		XMLoadFloat4(&comp.RoationQuat), roationQuaternion);
 
-	XMStoreFloat3(&comp.Up, XMVector3TransformNormal(XMLoadFloat3(&comp.Up), R));
-	XMStoreFloat3(&comp.Forward, XMVector3TransformNormal(XMLoadFloat3(&comp.Forward), R));
+	XMStoreFloat4(&comp.RoationQuat, resQ);
+	CalculateOrientation(id);
 }
 
 void PositionSystem::RotateY(EntityID id, float angle)
 {
 	PositionComponent& comp = mEManager->mPositions[id];
 
-	XMMATRIX R = XMMatrixRotationY(angle);
+	XMVECTOR roationQuaternion = XMQuaternionRotationMatrix(XMMatrixRotationY(angle));
+	XMVECTOR resQ = XMQuaternionMultiply(
+		XMLoadFloat4(&comp.RoationQuat), roationQuaternion);
 
-	XMStoreFloat3(&comp.Right, XMVector3TransformNormal(XMLoadFloat3(&comp.Right), R));
-	XMStoreFloat3(&comp.Up, XMVector3TransformNormal(XMLoadFloat3(&comp.Up), R));
-	XMStoreFloat3(&comp.Forward, XMVector3TransformNormal(XMLoadFloat3(&comp.Forward), R));
+	XMStoreFloat4(&comp.RoationQuat, resQ);
+	CalculateOrientation(id);
+}
+
+void PositionSystem::CalculateOrientation(EntityID id)
+{
+	PositionComponent& comp = mEManager->mPositions[id];
+
+	FXMVECTOR quat = XMLoadFloat4(&comp.RoationQuat);
+	XMStoreFloat3(&comp.Up, CalculateUp(quat));
+	XMStoreFloat3(&comp.Forward, CalculateForward(quat));
+	XMStoreFloat3(&comp.Right, CalculateRight(quat));
 }

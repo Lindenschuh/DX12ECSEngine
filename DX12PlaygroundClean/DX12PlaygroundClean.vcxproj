@@ -174,6 +174,11 @@
     <ClInclude Include="ECS\PhysicSystem.h" />
     <ClInclude Include="ECS\PositionSystem.h" />
     <ClInclude Include="Core\Default.h" />
+    <ClInclude Include="Ext\json.hpp" />
+    <ClInclude Include="Ext\stb_image.h" />
+    <ClInclude Include="Ext\stb_image_write.h" />
+    <ClInclude Include="Ext\tiny_gltf.h" />
+    <ClInclude Include="Ext\tiny_obj_loader.h" />
     <ClInclude Include="RenderCore\DX12Context.h" />
     <ClInclude Include="RenderCore\DXGPUResource.h" />
     <ClInclude Include="RenderCore\DXHelpers.h" />

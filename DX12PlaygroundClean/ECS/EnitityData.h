@@ -1,17 +1,19 @@
 #pragma once
 #include "..\Core\Default.h"
 #include "..\RenderCore\DXData.h"
-#include <PxPhysicsAPI.h>
 
 typedef u32 EntityID;
 
 struct PositionComponent
 {
-	XMFLOAT3 Position;
-	XMFLOAT3 Right = { 1.0f, 0.0f, 0.0f };
-	XMFLOAT3 Up = { 0.0f, 1.0f, 0.0f };
-	XMFLOAT3 Forward = { 0.0f, 0.0f, 1.0f };
+	XMFLOAT3 Up = { 0.0f,1.0f,0.0f };
+	XMFLOAT3 Forward = { 0.0f,0.0f,1.0f };
+	XMFLOAT3 Right = { 0.0f, 0.0f, 1.0f };
+	XMFLOAT3 Scaling = { 1.0f,1.0f,1.0f };
+	XMFLOAT3 Position = { 0.0f,0.0f,0.0f };
+	XMFLOAT4 RoationQuat = { 0.0f,0.0f,0.0f,1.0f };
 };
+
 struct CameraComponent
 {
 	float NearZ = 0.0f;

@@ -2,14 +2,22 @@
 
 void CameraSystem::LookAt(PositionComponent& comp, FXMVECTOR pos, FXMVECTOR targetPos, FXMVECTOR worldUp)
 {
-	XMVECTOR forward = XMVector3Normalize(XMVectorSubtract(targetPos, pos));
-	XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, forward));
-	XMVECTOR up = XMVector3Cross(forward, right);
+	XMVECTOR forwardVector = XMVector3Normalize(XMVectorSubtract(targetPos, pos));
+	XMVECTOR dot = XMVector3Dot(FORWARD, forwardVector);
+
+	XMVECTOR rotationAngle = XMVectorACos(dot);
+	XMVECTOR rotationAxis = XMVector3Normalize(XMVector3Cross(FORWARD, forwardVector));
+
+	float loadedRotAngle = 0;
+	XMStoreFloat(&loadedRotAngle, rotationAngle);
 
 	XMStoreFloat3(&comp.Position, pos);
-	XMStoreFloat3(&comp.Forward, forward);
-	XMStoreFloat3(&comp.Right, right);
-	XMStoreFloat3(&comp.Up, worldUp);
+	XMStoreFloat4(&comp.RoationQuat, XMQuaternionRotationAxis(rotationAxis, loadedRotAngle));
+
+	FXMVECTOR quat = XMLoadFloat4(&comp.RoationQuat);
+	XMStoreFloat3(&comp.Up, CalculateUp(quat));
+	XMStoreFloat3(&comp.Forward, CalculateForward(quat));
+	XMStoreFloat3(&comp.Right, CalculateRight(quat));
 }
 
 CameraSystem::CameraSystem(EntityManger * eManager)
@@ -87,9 +95,9 @@ CameraComponent & CameraSystem::GetMainCameraComp()
 	return mEManager->mCameras[MainCamera];
 }
 
-XMFLOAT3 CameraSystem::GetMainCameraPos()
+XMFLOAT3 CameraSystem::GetMainCameraPos() const
 {
-	return mEManager->mPositions[MainCamera].Position;
+	return  mEManager->mPositions[MainCamera].Position;
 }
 
 void CameraSystem::UpdateSystem(float time, float deltaTime)

@@ -26,6 +26,7 @@ private:
 public:
 	GeometrySystem(DX12Context* DXContext);
 	GeometryID LoadGeometry(GeoInfo& info);
+	GeometryID LoadFromGLTF(std::string&& path, std::string&& name);
 	MeshGeometry& GetMeshGeomerty(std::string name);
 	MeshGeometry& GetMeshGeomerty(GeometryID id);
 	GeometryID GetMeshGeomertyID(std::string name);

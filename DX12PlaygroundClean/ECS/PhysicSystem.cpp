@@ -4,10 +4,10 @@ using namespace physx;
 
 #define PVD_HOST "127.0.0.1"
 
-PhysicsSystem::PhysicsSystem(EntityManger* eManager)
+PhysicsSystem::PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer)
 {
 	mEManger = eManager;
-
+	mDXRenderer = renderer;
 	mFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, mAllocator, mErrorCallback);
 	mPVD = PxCreatePvd(*mFoundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate(PVD_HOST, 5425, 10);
@@ -17,7 +17,7 @@ PhysicsSystem::PhysicsSystem(EntityManger* eManager)
 		true, mPVD);
 	PxSceneDesc sceneDesc(mPhysics->getTolerancesScale());
 	sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-	mDispatcher = PxDefaultCpuDispatcherCreate(2);
+	mDispatcher = PxDefaultCpuDispatcherCreate(4);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 	mScene = mPhysics->createScene(sceneDesc);
@@ -30,7 +30,7 @@ PhysicsSystem::PhysicsSystem(EntityManger* eManager)
 		pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
 
-	mDefMat = mPhysics->createMaterial(0.5f, 0.5f, 0.5f);
+	mDefMat = mPhysics->createMaterial(1.0f, 1.0f, 1.0f);
 }
 
 void PhysicsSystem::AddDynamicToSystem(EntityID eId)
@@ -39,13 +39,15 @@ void PhysicsSystem::AddDynamicToSystem(EntityID eId)
 	mEManger->mFlags[eId] |= mEManger->FlagDynamicPhysic;
 	DynamicPhysicsComponent& dy = mEManger->mDynamicPhysics[eId];
 	PositionComponent pos = mEManger->mPositions[eId];
-	RenderComponent renComp = mEManger->mRenderData[eId];
+	RenderComponent ren = mEManger->mRenderData[eId];
+	RenderItem& rItem = mDXRenderer->mRItems[ren.layer][ren.renderItemID];
 
-	PxTransform transForm(PxVec3(pos.Position.x, pos.Position.y, pos.Position.z));
-	//TODO: Platz halter
-	PxShape* shape = mPhysics->createShape(PxBoxGeometry(4.0f, 4.0f, 4.0f), *mDefMat);
-	dy.DynamicRigidBody = mPhysics->createRigidDynamic(transForm);
+	XMFLOAT3 boundExteds = rItem.Bounds.Extents;
+
+	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
+	dy.DynamicRigidBody = mPhysics->createRigidDynamic({ pos.Position.x,pos.Position.y,pos.Position.z });
 	dy.DynamicRigidBody->attachShape(*shape);
+
 	mScene->addActor(*dy.DynamicRigidBody);
 }
 
@@ -53,6 +55,17 @@ void PhysicsSystem::AddStaticToSystem(EntityID eId)
 {
 	mEntities.push_back(eId);
 	mEManger->mFlags[eId] |= mEManger->FlagStaticPhysic;
+	StaticPhysicsComponent& staticPh = mEManger->mStaticPhysics[eId];
+	PositionComponent pos = mEManger->mPositions[eId];
+	RenderComponent ren = mEManger->mRenderData[eId];
+	RenderItem& rItem = mDXRenderer->mRItems[ren.layer][ren.renderItemID];
+
+	XMFLOAT3 boundExteds = rItem.Bounds.Extents;
+
+	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
+	staticPh.StaticRigidBody = mPhysics->createRigidStatic({ pos.Position.x,pos.Position.y,pos.Position.z });
+	staticPh.StaticRigidBody->attachShape(*shape);
+	mScene->addActor(*staticPh.StaticRigidBody);
 }
 
 void PhysicsSystem::RemoveFromSystem(EntityID eId)
