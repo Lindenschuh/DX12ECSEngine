@@ -145,4 +145,4 @@ static inline FXMVECTOR CalculateRight(const FXMVECTOR& Quaternion)
 static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
 static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 const s32 gNumFrameResources = 3;
-const u32 gNumOfTexures = 5;
+const u32 gNumOfTexures = 6;

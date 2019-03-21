@@ -23,6 +23,7 @@ public:
 	void LookAt(EntityID id, XMFLOAT3 targetPos, XMFLOAT3 worldUp);
 	void LookAt(EntityID id, XMFLOAT3 newPos, XMFLOAT3 targetPos, XMFLOAT3 worldUp);
 	void LookAt(EntityID id, EntityID targetId, XMFLOAT3 worldUp);
+	void DrawDebugMenu();
 	void SetMainCamera(EntityID id);
 	EntityID GetMainCamera();
 	CameraComponent& GetMainCameraComp();

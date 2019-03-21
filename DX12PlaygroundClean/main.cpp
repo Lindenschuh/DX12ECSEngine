@@ -275,11 +275,12 @@ static XMFLOAT3 GetHillsNormal(float x, float z)
 
 static void loadTextures(TextureSystem* system)
 {
-	system->LoadTexture("crateTex", L"Textures/bricks2.dds", DefaultTextureOptions());
-	system->LoadTexture("waterTex", L"Textures/bricks2_nmap.dds", DefaultTextureOptions());
+	system->LoadTexture("bricks", L"Textures/bricks2.dds", DefaultTextureOptions());
+	system->LoadTexture("normalBricks", L"Textures/bricks2_nmap.dds", DefaultTextureOptions());
 	system->LoadTexture("defaultTex", L"Textures/white1x1.dds", DefaultTextureOptions());
 	system->LoadTexture("defaultTexNormal", L"Textures/default_nmap.dds", DefaultTextureOptions());
-	system->LoadTexture("fenceTex", L"Textures/WireFence.dds", DefaultTextureOptions());
+	system->LoadTexture("tile", L"Textures/tile.dds", DefaultTextureOptions());
+	system->LoadTexture("tileNormal", L"Textures/tile_nmap.dds", DefaultTextureOptions());
 }
 
 static void buildBoxGeo(GeometrySystem* system)
@@ -287,7 +288,7 @@ static void buildBoxGeo(GeometrySystem* system)
 	GeometryGenerator geoGen;
 	MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
 	MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
-	MeshData plane = geoGen.CreateGrid(1000.0f, 1000.0f, 200, 200);
+	MeshData plane = geoGen.CreateGrid(2000.0f, 2000.0f, 200, 200);
 
 	std::vector<Vertex> vertices(box.Vertices.size() + quad.Vertices.size() + plane.Vertices.size());
 	std::vector<u16> indicies;
@@ -335,7 +336,7 @@ static void buildBoxGeo(GeometrySystem* system)
 	XMFLOAT3 boxCenterAndExtend = { 4.0f,4.0f,4.0f };
 	BoundingBox boxBound(boxCenterAndExtend, boxCenterAndExtend);
 
-	XMFLOAT3 planeCenterAndExtend = { 500.0f,0.001f,500.0f };
+	XMFLOAT3 planeCenterAndExtend = { 1000.0f,0.001f,1000.0f };
 	BoundingBox planeBox(planeCenterAndExtend, planeCenterAndExtend);
 
 	Submesh smBox = { box.Indicies.size(),0,0,boxBound };
@@ -368,18 +369,6 @@ static void buildBoxGeo(GeometrySystem* system)
 
 static void buildMaterials(MaterialSystem* system)
 {
-	MaterialConstants crate;
-	crate.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	crate.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-	crate.Roughness = 0.25f;
-	system->BuildMaterial("crate", 0, 0, crate);
-
-	MaterialConstants water;
-	water.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	water.FresnelR0 = { 0.2f, 0.2f, 0.2f };
-	water.Roughness = 0.0f;
-	system->BuildMaterial("water", 1, 0, water);
-
 	MaterialConstants metall;
 	metall.DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f);
 	metall.FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
@@ -390,13 +379,13 @@ static void buildMaterials(MaterialSystem* system)
 	brick.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	brick.FresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	brick.Roughness = 0.1f;
-	system->BuildMaterial("brick", 0, 1, brick);
+	system->BuildMaterial("brick", "bricks", "normalBricks", brick);
 
-	MaterialConstants wirefence;
-	wirefence.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	wirefence.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-	wirefence.Roughness = 0.25f;
-	system->BuildMaterial("wirefence", 4, 0, wirefence);
+	MaterialConstants tile;
+	tile.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	tile.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	tile.Roughness = 0.25f;
+	system->BuildMaterial("tile", "tile", "tileNormal", tile);
 }
 
 static void CreatePSO(DX12Renderer* ren)
@@ -565,8 +554,8 @@ int main()
 	LightSystem liSystem(render);
 	PhysicsSystem PSystem(&gObjects, render);
 
-	int boxCount = 1000;
-	int maxWidth = (boxCount / 100);
+	int boxCount = 10000;
+	int maxWidth = 1000;
 	int height = 0;
 	int width = 0;
 	float maxSpeed = 8;
@@ -582,7 +571,7 @@ int main()
 			width = 0;
 			height += 10;
 		}
-		gObjects.mPositions[eId].Position = { (float)width, 0.0f, (float)height };
+		gObjects.mPositions[eId].Position = { (float)width,RandomFloat(0.0f, 100.0f) , (float)height };
 
 		width += 10;
 		RenderItemDesc desc;
@@ -592,39 +581,26 @@ int main()
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		desc.Layer = RenderLayer::Opaque;
 		CreateRenderItem(&desc, render, eId, &gObjects);
-		globalMovement.AddToSystem(eId);
-		//PSystem.AddDynamicToSystem(eId);
+		//globalMovement.AddToSystem(eId);
+		PSystem.AddDynamicToSystem(eId);
 		visSystem.AddToSystem(eId);
 	}
 
-	for (int i = 0; i < boxCount; i++)
-	{
-		EntityID eId = gObjects.addEntity("boxTrans" + i);
-		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
-		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
-		if (width > maxWidth)
-		{
-			width = 0;
-			height += 10;
-		}
-		gObjects.mPositions[eId].Position = { (float)width, 0.0f, (float)height };
-
-		width += 10;
-		RenderItemDesc desc;
-		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "wirefence";
-		desc.SubMeshName = "box";
-		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::AlphaTest;
-		CreateRenderItem(&desc, render, eId, &gObjects);
-		globalMovement.AddToSystem(eId);
-		//PSystem.AddDynamicToSystem(eId);
-		visSystem.AddToSystem(eId);
-	}
+	EntityID eId = gObjects.addEntity("Plane");
+	gObjects.mFlags[eId] |= gObjects.FlagRenderData;
+	gObjects.mPositions[eId].Position = { 800.0f, -10.0f, 600.0f };
+	RenderItemDesc desc;
+	desc.GeometryName = "boxGeo";
+	desc.MaterialName = "tile";
+	desc.SubMeshName = "plane";
+	desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	desc.Layer = RenderLayer::Opaque;
+	CreateRenderItem(&desc, render, eId, &gObjects);
+	PSystem.AddStaticToSystem(eId);
 
 	EntityID cameraId = gObjects.addEntity("camera");
 	render->mCameraSystem->AddObjectToSystem(cameraId);
-	gObjects.mPositions[cameraId].Position = { 30.0f,5.0f,-10.0f };
+	gObjects.mPositions[cameraId].Position = { -173.0f,81.0f,-608.0f };
 	ConSystem.AddToSystem(cameraId);
 
 	render->FinishSetup();
@@ -633,13 +609,14 @@ int main()
 	{
 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
-		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		//globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		visSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		//PSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		PSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		liSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
+		render->mCameraSystem->DrawDebugMenu();
 		render->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		render->Draw();
 	}

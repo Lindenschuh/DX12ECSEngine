@@ -59,7 +59,7 @@ void DX12Renderer::FinishSetup()
 	mDXCon->flushCommandQueue();
 
 	mCameraSystem->SetFrustum(mCameraSystem->GetMainCamera(), 0.25f*XM_PI,
-		(float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.0f);
+		(float)mDXCon->Window->width / mDXCon->Window->height, 0.1f, 100000.0f);
 	Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 }
 
@@ -226,6 +226,7 @@ void DX12Renderer::Update(float time, float deltaTime)
 {
 	mFrameResourceSystem->SwitchFrameResource();
 	mCameraSystem->UpdateSystem(time, deltaTime);
+
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 	CameraComponent comp = mCameraSystem->GetMainCameraComp();
 
@@ -248,7 +249,7 @@ void DX12Renderer::ProcessGlobalEvents()
 
 		gGlobalEvents.isResized = false;
 		mCameraSystem->SetFrustum(mCameraSystem->GetMainCamera(),
-			0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 1.0f, 1000.f);
+			0.25f*XM_PI, (float)mDXCon->Window->width / mDXCon->Window->height, 0.1f, 100000.0f);
 	}
 }
 

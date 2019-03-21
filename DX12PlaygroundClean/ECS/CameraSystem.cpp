@@ -29,7 +29,7 @@ void CameraSystem::AddObjectToSystem(EntityID id)
 {
 	Entities.emplace_back(id);
 	mEManager->mFlags[id] |= mEManager->FlagCamera;
-	SetFrustum(id, 0.25f*XM_PI, 1.0f, 1.0f, 1000.0f);
+	SetFrustum(id, 0.25f*XM_PI, 1.0f, 0.1f, 100000.0f);
 	if (MainCamera == MAXUINT32)
 		MainCamera = id;
 }
@@ -78,6 +78,19 @@ void CameraSystem::LookAt(EntityID id, EntityID targetId, XMFLOAT3 worldUp)
 	XMVECTOR u = XMLoadFloat3(&worldUp);
 
 	LookAt(posComp, p, t, u);
+}
+
+void CameraSystem::DrawDebugMenu()
+{
+	PositionComponent& pos = mEManager->mPositions[MainCamera];
+	CameraComponent& cam = mEManager->mCameras[MainCamera];
+
+	ImGui::Begin("Kamera Debug Menu");
+
+	ImGui::Text("Position: X: %.2f Y: %.2f Z: %.2f", pos.Position.x, pos.Position.y, pos.Position.z);
+	ImGui::Text("Kamera Daten: Near: %.2f Far: %.2f", cam.NearZ, cam.FarZ);
+
+	ImGui::End();
 }
 
 void CameraSystem::SetMainCamera(EntityID id)

@@ -17,7 +17,7 @@ PhysicsSystem::PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer)
 		true, mPVD);
 	PxSceneDesc sceneDesc(mPhysics->getTolerancesScale());
 	sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-	mDispatcher = PxDefaultCpuDispatcherCreate(4);
+	mDispatcher = PxDefaultCpuDispatcherCreate(8);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 	mScene = mPhysics->createScene(sceneDesc);
@@ -30,7 +30,7 @@ PhysicsSystem::PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer)
 		pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
 
-	mDefMat = mPhysics->createMaterial(1.0f, 1.0f, 1.0f);
+	mDefMat = mPhysics->createMaterial(.8f, .8f, .8f);
 }
 
 void PhysicsSystem::AddDynamicToSystem(EntityID eId)
@@ -47,7 +47,9 @@ void PhysicsSystem::AddDynamicToSystem(EntityID eId)
 	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
 	dy.DynamicRigidBody = mPhysics->createRigidDynamic({ pos.Position.x,pos.Position.y,pos.Position.z });
 	dy.DynamicRigidBody->attachShape(*shape);
-
+	dy.DynamicRigidBody->userData = &mEntities[mEntities.size() - 1];
+	dy.DynamicRigidBody->setMass(50.0f);
+	dy.DynamicRigidBody->setSolverIterationCounts(5, 5);
 	mScene->addActor(*dy.DynamicRigidBody);
 }
 
@@ -65,6 +67,8 @@ void PhysicsSystem::AddStaticToSystem(EntityID eId)
 	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
 	staticPh.StaticRigidBody = mPhysics->createRigidStatic({ pos.Position.x,pos.Position.y,pos.Position.z });
 	staticPh.StaticRigidBody->attachShape(*shape);
+	staticPh.StaticRigidBody->userData = &mEntities[mEntities.size() - 1];
+
 	mScene->addActor(*staticPh.StaticRigidBody);
 }
 
