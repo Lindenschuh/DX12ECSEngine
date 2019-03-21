@@ -44,7 +44,7 @@ struct MaterialData
 TextureCube gCubeMap : register(t0);
 Texture2D gShadowMap : register(t1);
 
-Texture2D gTextureMaps[4] : register(t2);
+Texture2D gTextureMaps[5] : register(t2);
 
 StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
 StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
@@ -120,9 +120,9 @@ float CalcShadowFactor(float4 shdaowPosH)
     float percentLit = 0.0f;
     const float2 offsets[9] =
     {
-        float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
-        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
-        float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+        float2(-dx, -dx), float2(0.0f, -dx), float2(+dx, -dx),
+        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(+dx, 0.0f),
+        float2(-dx, +dx), float2(0.0f, +dx), float2(+dx, +dx)
     };
 
     [unroll]

@@ -257,6 +257,9 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 
 		if (lay == RenderLayer::Skybox || lay == RenderLayer::ShadowDebug)
 		{
+			if (rItems.size() == 0)
+				continue;
+
 			RenderItem& rItem = rItems[0];
 			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[0].World);
 			XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[0].TexTransform);

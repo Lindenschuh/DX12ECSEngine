@@ -47,12 +47,6 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 
 void PS(VertexOut pin) 
 {
-	// Fetch the material data.
-	MaterialData matData = gMaterialData[pin.MatIndex];
-	float4 diffuseAlbedo = matData.DiffuseAlbedo;
-	uint diffuseTexIndex = matData.DiffuseMapIndex;
-
-    diffuseAlbedo *= gTextureMaps[diffuseTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
 #ifdef ALPHA_TEST
     clip(diffuseAlbedo.a - 0.1f);

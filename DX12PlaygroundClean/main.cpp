@@ -279,6 +279,7 @@ static void loadTextures(TextureSystem* system)
 	system->LoadTexture("waterTex", L"Textures/bricks2_nmap.dds", DefaultTextureOptions());
 	system->LoadTexture("defaultTex", L"Textures/white1x1.dds", DefaultTextureOptions());
 	system->LoadTexture("defaultTexNormal", L"Textures/default_nmap.dds", DefaultTextureOptions());
+	system->LoadTexture("fenceTex", L"Textures/WireFence.dds", DefaultTextureOptions());
 }
 
 static void buildBoxGeo(GeometrySystem* system)
@@ -379,17 +380,23 @@ static void buildMaterials(MaterialSystem* system)
 	water.Roughness = 0.0f;
 	system->BuildMaterial("water", 1, 0, water);
 
-	MaterialConstants wirefence;
-	wirefence.DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f);
-	wirefence.FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
-	wirefence.Roughness = 0.1f;
-	system->BuildMaterial("metal", 2, 3, wirefence);
+	MaterialConstants metall;
+	metall.DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f);
+	metall.FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
+	metall.Roughness = 0.1f;
+	system->BuildMaterial("metal", 2, 3, metall);
 
 	MaterialConstants brick;
 	brick.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	brick.FresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	brick.Roughness = 0.1f;
 	system->BuildMaterial("brick", 0, 1, brick);
+
+	MaterialConstants wirefence;
+	wirefence.DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	wirefence.FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	wirefence.Roughness = 0.25f;
+	system->BuildMaterial("wirefence", 4, 0, wirefence);
 }
 
 static void CreatePSO(DX12Renderer* ren)
@@ -435,60 +442,8 @@ static void CreateShadowDebugView(DX12Renderer* render)
 	CreateRenderItem(&desc, render, eIdDebug, &gObjects);
 }
 
-//ECS
-int main()
+static void OptionalThings(PhysicsSystem& PSystem, DX12Renderer* render)
 {
-	//LoadGltf("Models\\Triangle\\glTF\\Triangle.gltf", &loader, &model);
-
-	DX12Renderer* render = new DX12Renderer(1920, 1080, "Winnidow", &gObjects);
-
-	buildBoxGeo(render->mGeometrySystem);
-	loadTextures(render->mTextureSystem);
-	buildMaterials(render->mMaterialSystem);
-	CreatePSO(render);
-
-	PositionSystem PosSystem(&gObjects);
-	GlobalMovement globalMovement(&gObjects);
-	GuiSystem guiSystem;
-	RenderSystem renderSystem(&gObjects, render);
-	FogSystem fogSystem(&gObjects, render);
-	ControllSystem ConSystem(&gObjects, &PosSystem);
-	VisibilitySystem visSystem(&gObjects);
-	LightSystem liSystem(render);
-	PhysicsSystem PSystem(&gObjects, render);
-
-	int boxCount = 1000;
-	int maxWidth = (boxCount / 100);
-	int height = 0;
-	int width = 0;
-	float maxSpeed = 8;
-	float minSpeed = 3;
-
-	for (int i = 0; i < boxCount; i++)
-	{
-		EntityID eId = gObjects.addEntity("box");
-		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
-		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
-		if (width > maxWidth)
-		{
-			width = 0;
-			height += 10;
-		}
-		gObjects.mPositions[eId].Position = { (float)width, 0.0f, (float)height };
-
-		width += 10;
-		RenderItemDesc desc;
-		desc.GeometryName = "boxGeo";
-		desc.MaterialName = "brick";
-		desc.SubMeshName = "box";
-		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		desc.Layer = RenderLayer::Opaque;
-		CreateRenderItem(&desc, render, eId, &gObjects);
-		//globalMovement.AddToSystem(eId);
-		PSystem.AddDynamicToSystem(eId);
-		visSystem.AddToSystem(eId);
-	}
-
 	EntityID floor = gObjects.addEntity("floor");
 	gObjects.mFlags[floor] |= gObjects.FlagRenderData;
 	gObjects.mPositions[floor].Position = { 0.0f,2.0f,0.0f };
@@ -585,12 +540,92 @@ int main()
 	CreateRenderItem(&descTB, render, tall_block, &gObjects);
 	PSystem.AddStaticToSystem(tall_block);
 
+	CreateShadowDebugView(render);
+}
+
+//ECS
+int main()
+{
+	//LoadGltf("Models\\Triangle\\glTF\\Triangle.gltf", &loader, &model);
+
+	DX12Renderer* render = new DX12Renderer(1920, 1080, "Winnidow", &gObjects);
+
+	buildBoxGeo(render->mGeometrySystem);
+	loadTextures(render->mTextureSystem);
+	buildMaterials(render->mMaterialSystem);
+	CreatePSO(render);
+
+	PositionSystem PosSystem(&gObjects);
+	GlobalMovement globalMovement(&gObjects);
+	GuiSystem guiSystem;
+	RenderSystem renderSystem(&gObjects, render);
+	FogSystem fogSystem(&gObjects, render);
+	ControllSystem ConSystem(&gObjects, &PosSystem);
+	VisibilitySystem visSystem(&gObjects);
+	LightSystem liSystem(render);
+	PhysicsSystem PSystem(&gObjects, render);
+
+	int boxCount = 1000;
+	int maxWidth = (boxCount / 100);
+	int height = 0;
+	int width = 0;
+	float maxSpeed = 8;
+	float minSpeed = 3;
+
+	for (int i = 0; i < boxCount; i++)
+	{
+		EntityID eId = gObjects.addEntity("box" + i);
+		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
+		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
+		if (width > maxWidth)
+		{
+			width = 0;
+			height += 10;
+		}
+		gObjects.mPositions[eId].Position = { (float)width, 0.0f, (float)height };
+
+		width += 10;
+		RenderItemDesc desc;
+		desc.GeometryName = "boxGeo";
+		desc.MaterialName = "brick";
+		desc.SubMeshName = "box";
+		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		desc.Layer = RenderLayer::Opaque;
+		CreateRenderItem(&desc, render, eId, &gObjects);
+		globalMovement.AddToSystem(eId);
+		//PSystem.AddDynamicToSystem(eId);
+		visSystem.AddToSystem(eId);
+	}
+
+	for (int i = 0; i < boxCount; i++)
+	{
+		EntityID eId = gObjects.addEntity("boxTrans" + i);
+		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
+		gObjects.mFlags[eId] |= gObjects.FlagRenderData;
+		if (width > maxWidth)
+		{
+			width = 0;
+			height += 10;
+		}
+		gObjects.mPositions[eId].Position = { (float)width, 0.0f, (float)height };
+
+		width += 10;
+		RenderItemDesc desc;
+		desc.GeometryName = "boxGeo";
+		desc.MaterialName = "wirefence";
+		desc.SubMeshName = "box";
+		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		desc.Layer = RenderLayer::AlphaTest;
+		CreateRenderItem(&desc, render, eId, &gObjects);
+		globalMovement.AddToSystem(eId);
+		//PSystem.AddDynamicToSystem(eId);
+		visSystem.AddToSystem(eId);
+	}
+
 	EntityID cameraId = gObjects.addEntity("camera");
 	render->mCameraSystem->AddObjectToSystem(cameraId);
 	gObjects.mPositions[cameraId].Position = { 30.0f,5.0f,-10.0f };
 	ConSystem.AddToSystem(cameraId);
-
-	CreateShadowDebugView(render);
 
 	render->FinishSetup();
 
@@ -598,10 +633,10 @@ int main()
 	{
 		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
-		//globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		visSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		ConSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		PSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		//PSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		liSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
 
