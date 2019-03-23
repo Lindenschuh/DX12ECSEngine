@@ -17,7 +17,7 @@ PhysicsSystem::PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer)
 		true, mPVD);
 	PxSceneDesc sceneDesc(mPhysics->getTolerancesScale());
 	sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-	mDispatcher = PxDefaultCpuDispatcherCreate(4);
+	mDispatcher = PxDefaultCpuDispatcherCreate(8);
 	sceneDesc.cpuDispatcher = mDispatcher;
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 	mScene = mPhysics->createScene(sceneDesc);
@@ -118,6 +118,11 @@ void PhysicsSystem::UpdateSystem(float time, float deltaTime)
 			PositionComponent& pos = mEManger->mPositions[eId];
 			PxTransform trans = rigi->getGlobalPose();
 			pos.Position = XMFLOAT3(trans.p.x, trans.p.y, trans.p.z);
+			pos.RoationQuat = XMFLOAT4(trans.q.x, trans.q.y, trans.q.z, trans.q.w);
+			FXMVECTOR quat = XMLoadFloat4(&pos.RoationQuat);
+			XMStoreFloat3(&pos.Up, CalculateUp(quat));
+			XMStoreFloat3(&pos.Forward, CalculateForward(quat));
+			XMStoreFloat3(&pos.Right, CalculateRight(quat));
 		}
 	}
 }
