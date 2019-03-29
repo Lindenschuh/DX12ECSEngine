@@ -20,7 +20,7 @@ void CameraSystem::LookAt(PositionComponent& comp, FXMVECTOR pos, FXMVECTOR targ
 	XMStoreFloat3(&comp.Right, CalculateRight(quat));
 }
 
-CameraSystem::CameraSystem(EntityManger * eManager)
+CameraSystem::CameraSystem(EntityManager * eManager)
 {
 	mEManager = eManager;
 }

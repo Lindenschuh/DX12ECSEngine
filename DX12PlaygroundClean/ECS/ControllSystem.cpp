@@ -1,6 +1,6 @@
 #include "ControllSystem.h"
 
-ControllSystem::ControllSystem(EntityManger * eManager, PositionSystem * pSystem)
+ControllSystem::ControllSystem(EntityManager * eManager, PositionSystem * pSystem)
 {
 	mEManager = eManager;
 	mPositionSystem = pSystem;
@@ -8,14 +8,25 @@ ControllSystem::ControllSystem(EntityManger * eManager, PositionSystem * pSystem
 
 void ControllSystem::AddToSystem(EntityID id)
 {
-	entities.emplace_back(id);
+	mEntities.emplace_back(id);
+}
+
+void ControllSystem::RemoveFromSystem(EntityID id)
+{
+	for (int i = 0; i < mEntities.size(); i++)
+	{
+		if (mEntities[i] == id)
+		{
+			mEntities.erase(mEntities.begin() + i);
+		}
+	}
 }
 
 void ControllSystem::UpdateSystem(float time, float deltaTime)
 {
-	for (int i = 0; i < entities.size(); i++)
+	for (int i = 0; i < mEntities.size(); i++)
 	{
-		EntityID eId = entities[i];
+		EntityID eId = mEntities[i];
 
 		if (ImGui::IsKeyDown(VK_SHIFT))
 		{
@@ -48,8 +59,11 @@ void ControllSystem::UpdateSystem(float time, float deltaTime)
 
 		if (ImGui::IsMouseDown(0))
 		{
-			float dx = XMConvertToRadians(0.25f*((float)ImGui::GetMousePos().x - mLastMouseX));
-			float dy = XMConvertToRadians(0.25f*((float)ImGui::GetMousePos().y - mLastMouseY));
+			float dx = XMConvertToRadians(0.25f*(
+				(float)ImGui::GetMousePos().x - mLastMouseX));
+
+			float dy = XMConvertToRadians(0.25f*(
+				(float)ImGui::GetMousePos().y - mLastMouseY));
 
 			mPositionSystem->RotateY(eId, dx);
 			mPositionSystem->Pitch(eId, dy);

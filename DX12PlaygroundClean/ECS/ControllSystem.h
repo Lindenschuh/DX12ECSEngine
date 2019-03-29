@@ -6,15 +6,16 @@
 class ControllSystem
 {
 private:
-	std::vector<EntityID> entities;
+	std::vector<EntityID> mEntities;
 	PositionSystem* mPositionSystem;
-	EntityManger* mEManager;
+	EntityManager* mEManager;
 	int mLastMouseX;
 	int mLastMouseY;
 
 	float speed = 10.0f;
 public:
-	ControllSystem(EntityManger* eManager, PositionSystem* pSystem);
+	ControllSystem(EntityManager* eManager, PositionSystem* pSystem);
 	void AddToSystem(EntityID id);
+	void RemoveFromSystem(EntityID id);
 	void UpdateSystem(float time, float deltaTime);
 };

@@ -19,21 +19,21 @@
 class DX12Renderer
 {
 public:
-	DX12Renderer(u32 width, u32 height, const char* windowName, EntityManger* eManager);
+	DX12Renderer(u32 width, u32 height, const char* windowName, EntityManager* eManager);
 	GameTimer* mTimer;
 	bool IsWindowActive(void);
 	void Draw();
 	void Update(float time, float deltaTime);
 	void FinishSetup();
-	void AddRenderItem(std::string name, RenderItem r, RenderLayer::RenderLayer rl);
+	void AddGeometryBatch(std::string name, GeometryBatch r, RenderLayer::RenderLayer rl);
 	void SetFogData(XMFLOAT4 fogColor, float fogStart, float fogRange);
 	void SetLayerPSO(std::string psoName, RenderLayer::RenderLayer layer);
 	void MainLightData(XMFLOAT3 direction, XMFLOAT3 strength);
 	std::string GetLayerPSO(RenderLayer::RenderLayer layer);
 
-	RenderItem* GetRenderItem(std::string name);
+	GeometryBatch* GetGeoBatch(std::string name);
 
-	std::vector<RenderItem> mRItems[RenderLayer::Count];
+	std::vector<GeometryBatch> mAllGeometryBatches[RenderLayer::Count];
 
 	TextureSystem* mTextureSystem;
 	MaterialSystem* mMaterialSystem;
@@ -66,5 +66,5 @@ private:
 	void BuildRootSignature();
 	void DrawShadowMap();
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList,
-		std::vector<RenderItem>&rItems, u32& INOUToffset);
+		std::vector<GeometryBatch>&geoBatches, u32& INOUToffset);
 };

@@ -2,7 +2,7 @@
 
 #include "EnitityData.h"
 
-struct EntityManger
+struct EntityManager
 {
 	enum
 	{
@@ -56,4 +56,4 @@ struct EntityManger
 	}
 };
 
-static EntityManger gObjects;
+static EntityManager gObjects;

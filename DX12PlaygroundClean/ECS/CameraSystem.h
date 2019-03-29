@@ -7,7 +7,7 @@ private:
 	std::vector<EntityID> Entities;
 
 	EntityID MainCamera = MAXUINT32;
-	EntityManger* mEManager;
+	EntityManager* mEManager;
 
 	float mTheta = 1.5f * XM_PI;
 	float mPhi = XM_PIDIV2 - 0.1f;
@@ -17,7 +17,7 @@ private:
 	void LookAt(PositionComponent& comp, FXMVECTOR pos, FXMVECTOR targetPos, FXMVECTOR worldUp);
 public:
 
-	CameraSystem(EntityManger* eManager);
+	CameraSystem(EntityManager* eManager);
 	void AddObjectToSystem(EntityID id);
 	void SetFrustum(EntityID id, float fovY, float aspect, float zNear, float zFar);
 	void LookAt(EntityID id, XMFLOAT3 targetPos, XMFLOAT3 worldUp);

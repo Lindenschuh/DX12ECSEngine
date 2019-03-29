@@ -7,9 +7,9 @@ class RenderSystem
 {
 private:
 	DX12Renderer* renderer;
-	EntityManger* eManager;
+	EntityManager* eManager;
 public:
-	RenderSystem(EntityManger* manager, DX12Renderer* render);
+	RenderSystem(EntityManager* manager, DX12Renderer* render);
 	void SetRenderer(DX12Renderer* ren);
 	Material* GetMaterial(EntityID id);
 	MeshGeometry* GetGeometry(EntityID id);
@@ -27,11 +27,11 @@ class DebugWindowSystem
 {
 private:
 	RenderSystem* rSystem;
-	EntityManger* eManager;
+	EntityManager* eManager;
 	std::vector<EntityID> changeableObjects;
 	XMFLOAT4 color = { 1.0f,1.0f,1.0f,1.0f };
 public:
-	DebugWindowSystem(RenderSystem* system, EntityManger* manager);
+	DebugWindowSystem(RenderSystem* system, EntityManager* manager);
 	void registerItem(EntityID eId);
 	void UpdateSystem(float time, float deltaTime);
 };
@@ -40,11 +40,11 @@ class GlobalMovement
 {
 private:
 	std::vector<EntityID> entities;
-	EntityManger* mEManager;
+	EntityManager* mEManager;
 	XMFLOAT3 bounds = { 500.0f,500.0f,500.0f };
 
 public:
-	GlobalMovement(EntityManger* eManager);
+	GlobalMovement(EntityManager* eManager);
 	void AddToSystem(EntityID eId);
 	void UpdateSystem(float time, float deltaTime);
 };
@@ -52,11 +52,11 @@ public:
 class VisibilitySystem
 {
 private:
-	EntityManger* mEManger;
+	EntityManager* mEManger;
 	std::vector<EntityID> entities;
 public:
 	void AddToSystem(EntityID eId);
-	VisibilitySystem(EntityManger* eMangager);
+	VisibilitySystem(EntityManager* eMangager);
 	void UpdateSystem(float time, float deltaTime);
 };
 
@@ -69,18 +69,18 @@ struct RenderItemDesc
 	D3D_PRIMITIVE_TOPOLOGY PrimitiveType;
 };
 
-void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityID eId, EntityManger* eManger)
+void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityID eId, EntityManager* eManger)
 {
 	MeshGeometry& md = render->mGeometrySystem->GetMeshGeomerty(desc->GeometryName);
 	Material& mat = render->mMaterialSystem->GetMaterial(desc->MaterialName);
 	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
 
-	std::vector<RenderItem>& rItems = render->mRItems[desc->Layer];
+	std::vector<GeometryBatch>& geoBatches = render->mAllGeometryBatches[desc->Layer];
 	s32 Objindex = -1;
 
-	for (int i = 0; i < rItems.size(); i++)
+	for (int i = 0; i < geoBatches.size(); i++)
 	{
-		RenderItem& ri = rItems[i];
+		GeometryBatch& ri = geoBatches[i];
 		if (ri.GeoIndex == md.GeometryIndex)
 		{
 			if (ri.IndexCount == sMesh.IndexCount && ri.baseVertexLocation == sMesh.BaseVertexLocation
@@ -92,12 +92,11 @@ void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityI
 		}
 	}
 
-	RenderItem* ritem;
+	GeometryBatch* geoBatch;
 
 	if (Objindex == -1)
 	{
-		RenderItem tmpItem;
-		tmpItem.ObjCBIndex = rItems.size();
+		GeometryBatch tmpItem;
 		tmpItem.GeoIndex = md.GeometryIndex;
 
 		tmpItem.PrimitiveType = desc->PrimitiveType;
@@ -106,26 +105,25 @@ void static CreateRenderItem(RenderItemDesc* desc, DX12Renderer* render, EntityI
 		tmpItem.StartIndexLocation = sMesh.StartIndexLocation;
 		tmpItem.baseVertexLocation = sMesh.BaseVertexLocation;
 
-		render->AddRenderItem("box", tmpItem, desc->Layer);
-
-		Objindex = tmpItem.ObjCBIndex;
-		ritem = &rItems[tmpItem.ObjCBIndex];
+		render->AddGeometryBatch("box", tmpItem, desc->Layer);
+		Objindex = geoBatches.size() - 1;
+		geoBatch = &geoBatches[Objindex];
 	}
 	else
 	{
-		ritem = &rItems[Objindex];
+		geoBatch = &geoBatches[Objindex];
 	}
 
 	InstanceData id;
 	id.MaterialIndex = mat.MatCBIndex;
 	id.TexTransform = Identity4x4();
 	id.World = Identity4x4();
-	u32 instanceid = ritem->Instances.size();
-	ritem->Instances.push_back(id);
+	u32 instanceid = geoBatch->Instances.size();
+	geoBatch->Instances.push_back(id);
 
 	RenderComponent& rComp = eManger->mRenderData[eId];
 	rComp.layer = desc->Layer;
-	rComp.GeoIndex = ritem->GeoIndex;
+	rComp.GeoIndex = geoBatch->GeoIndex;
 	rComp.MatCBIndex = mat.MatCBIndex;
 	rComp.renderItemID = Objindex;
 }

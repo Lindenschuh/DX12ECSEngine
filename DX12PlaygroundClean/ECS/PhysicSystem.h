@@ -6,7 +6,7 @@
 class PhysicsSystem
 {
 public:
-	PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer);
+	PhysicsSystem(EntityManager* eManager, DX12Renderer* renderer);
 	void AddDynamicToSystem(EntityID eId);
 	void AddStaticToSystem(EntityID eId);
 	void RemoveFromSystem(EntityID eId);
@@ -16,7 +16,7 @@ public:
 private:
 	std::vector<EntityID> mEntities;
 
-	EntityManger* mEManger;
+	EntityManager* mEManger;
 	DX12Renderer* mDXRenderer;
 
 	physx::PxDefaultAllocator		mAllocator;

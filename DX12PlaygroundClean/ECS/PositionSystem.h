@@ -4,10 +4,10 @@
 class PositionSystem
 {
 private:
-	EntityManger* mEManager;
+	EntityManager* mEManager;
 
 public:
-	PositionSystem(EntityManger * eManager);
+	PositionSystem(EntityManager * eManager);
 
 	void Strafe(EntityID id, float d);
 	void Walk(EntityID id, float d);

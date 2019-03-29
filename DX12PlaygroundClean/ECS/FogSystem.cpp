@@ -1,6 +1,6 @@
 #include "FogSystem.h"
 
-FogSystem::FogSystem(EntityManger * manager, DX12Renderer * render)
+FogSystem::FogSystem(EntityManager * manager, DX12Renderer * render)
 {
 	eManager = manager;
 	renderer = render;

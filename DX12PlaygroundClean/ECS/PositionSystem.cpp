@@ -1,6 +1,6 @@
 #include "PositionSystem.h"
 
-PositionSystem::PositionSystem(EntityManger * eManager)
+PositionSystem::PositionSystem(EntityManager * eManager)
 {
 	mEManager = eManager;
 }

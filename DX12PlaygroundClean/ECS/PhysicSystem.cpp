@@ -4,7 +4,7 @@ using namespace physx;
 
 #define PVD_HOST "127.0.0.1"
 
-PhysicsSystem::PhysicsSystem(EntityManger* eManager, DX12Renderer* renderer)
+PhysicsSystem::PhysicsSystem(EntityManager* eManager, DX12Renderer* renderer)
 {
 	mEManger = eManager;
 	mDXRenderer = renderer;
@@ -40,9 +40,9 @@ void PhysicsSystem::AddDynamicToSystem(EntityID eId)
 	DynamicPhysicsComponent& dy = mEManger->mDynamicPhysics[eId];
 	PositionComponent pos = mEManger->mPositions[eId];
 	RenderComponent ren = mEManger->mRenderData[eId];
-	RenderItem& rItem = mDXRenderer->mRItems[ren.layer][ren.renderItemID];
+	GeometryBatch& geoBatch = mDXRenderer->mAllGeometryBatches[ren.layer][ren.renderItemID];
 
-	XMFLOAT3 boundExteds = rItem.Bounds.Extents;
+	XMFLOAT3 boundExteds = geoBatch.Bounds.Extents;
 
 	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
 	dy.DynamicRigidBody = mPhysics->createRigidDynamic({ pos.Position.x,pos.Position.y,pos.Position.z });
@@ -60,9 +60,9 @@ void PhysicsSystem::AddStaticToSystem(EntityID eId)
 	StaticPhysicsComponent& staticPh = mEManger->mStaticPhysics[eId];
 	PositionComponent pos = mEManger->mPositions[eId];
 	RenderComponent ren = mEManger->mRenderData[eId];
-	RenderItem& rItem = mDXRenderer->mRItems[ren.layer][ren.renderItemID];
+	GeometryBatch& geoBatch = mDXRenderer->mAllGeometryBatches[ren.layer][ren.renderItemID];
 
-	XMFLOAT3 boundExteds = rItem.Bounds.Extents;
+	XMFLOAT3 boundExteds = geoBatch.Bounds.Extents;
 
 	PxShape* shape = mPhysics->createShape(PxBoxGeometry(boundExteds.x + 0.00001f, boundExteds.y + 0.00001f, boundExteds.z + 0.00001f), *mDefMat);
 	staticPh.StaticRigidBody = mPhysics->createRigidStatic({ pos.Position.x,pos.Position.y,pos.Position.z });
@@ -95,10 +95,6 @@ void PhysicsSystem::RemoveFromSystem(EntityID eId)
 				st.StaticRigidBody = nullptr;
 				mEManger->mFlags[eId] ^= mEManger->FlagStaticPhysic;
 			}
-		}
-		else
-		{
-			return;
 		}
 	}
 }

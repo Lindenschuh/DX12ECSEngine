@@ -7,12 +7,12 @@ OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* des
 	Material& mat = renderer->mMaterialSystem->GetMaterial(desc->MaterialName);
 	Submesh& sMesh = md.Submeshes[desc->SubMeshName];
 
-	std::vector<RenderItem>& rItems = ren->mRItems[desc->Layer];
+	std::vector<GeometryBatch>& geoBatches = ren->mAllGeometryBatches[desc->Layer];
 	s32 Objindex = -1;
 
-	for (int i = 0; i < rItems.size(); i++)
+	for (int i = 0; i < geoBatches.size(); i++)
 	{
-		RenderItem& ri = rItems[i];
+		GeometryBatch& ri = geoBatches[i];
 		if (ri.GeoIndex == md.GeometryIndex)
 		{
 			if (ri.IndexCount == sMesh.IndexCount && ri.baseVertexLocation == sMesh.BaseVertexLocation
@@ -24,12 +24,12 @@ OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* des
 		}
 	}
 
-	RenderItem* ritem;
+	GeometryBatch* geoBatch;
 
 	if (Objindex == -1)
 	{
-		RenderItem tmpItem;
-		tmpItem.ObjCBIndex = rItems.size();
+		GeometryBatch tmpItem;
+
 		tmpItem.GeoIndex = md.GeometryIndex;
 
 		tmpItem.PrimitiveType = desc->PrimitiveType;
@@ -38,25 +38,24 @@ OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* des
 		tmpItem.StartIndexLocation = sMesh.StartIndexLocation;
 		tmpItem.baseVertexLocation = sMesh.BaseVertexLocation;
 
-		ren->AddRenderItem("box", tmpItem, desc->Layer);
-
-		ritem = &rItems[tmpItem.ObjCBIndex];
-		Objindex = tmpItem.ObjCBIndex;
+		ren->AddGeometryBatch("box", tmpItem, desc->Layer);
+		Objindex = geoBatches.size() - 1;
+		geoBatch = &geoBatches[Objindex];
 	}
 	else
 	{
-		ritem = &rItems[Objindex];
+		geoBatch = &geoBatches[Objindex];
 	}
 
 	InstanceData id;
 	id.MaterialIndex = mat.MatCBIndex;
 	id.TexTransform = Identity4x4();
 	id.World = Identity4x4();
-	u32 instanceid = ritem->Instances.size();
-	ritem->Instances.push_back(id);
+	u32 instanceid = geoBatch->Instances.size();
+	geoBatch->Instances.push_back(id);
 
 	this->layer = desc->Layer;
-	this->GeoIndex = ritem->GeoIndex;
+	this->GeoIndex = geoBatch->GeoIndex;
 	this->instanceID = instanceid;
 	this->MatCBIndex = mat.MatCBIndex;
 	this->renderItemID = Objindex;
@@ -65,7 +64,7 @@ OOPRenderCompoment::OOPRenderCompoment(DX12Renderer* ren, OOPRenderItemDesc* des
 void OOPRenderCompoment::Update(float time, float deltaTime)
 {
 	XMFLOAT3& pos = transFormComp->Position;
-	InstanceData&  instance = renderer->mRItems[layer][renderItemID].Instances[instanceID];
+	InstanceData&  instance = renderer->mAllGeometryBatches[layer][renderItemID].Instances[instanceID];
 
 	XMStoreFloat4x4(&instance.World,
 		XMMatrixMultiply(XMMatrixIdentity(), XMMatrixTranslation(transFormComp->Position.x,

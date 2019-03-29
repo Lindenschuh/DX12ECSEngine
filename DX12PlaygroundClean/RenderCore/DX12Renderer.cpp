@@ -1,7 +1,7 @@
 #include <assert.h>
 #include "DX12Renderer.h"
 
-DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName, EntityManger* eManager)
+DX12Renderer::DX12Renderer(u32 width, u32 height, const char* windowName, EntityManager* eManager)
 {
 	mTimer = new GameTimer();
 	mDXCon = new DX12Context(width, height, windowName);
@@ -30,9 +30,9 @@ void DX12Renderer::FinishSetup()
 	u32 instanceCount = 0;
 	for (int i = 0; i < RenderLayer::Count; i++)
 	{
-		for (int j = 0; j < mRItems[i].size(); j++)
+		for (int j = 0; j < mAllGeometryBatches[i].size(); j++)
 		{
-			instanceCount += mRItems[i][j].Instances.size();
+			instanceCount += mAllGeometryBatches[i][j].Instances.size();
 		}
 	}
 
@@ -86,16 +86,16 @@ std::string DX12Renderer::GetLayerPSO(RenderLayer::RenderLayer layer)
 	return LayerPSO[layer];
 }
 
-RenderItem * DX12Renderer::GetRenderItem(std::string name)
+GeometryBatch * DX12Renderer::GetGeoBatch(std::string name)
 {
 	std::pair<RenderLayer::RenderLayer, u32> renderPair = mRenderItemPair[name];
-	return &mRItems[renderPair.first][renderPair.second];
+	return &mAllGeometryBatches[renderPair.first][renderPair.second];
 }
 
-void DX12Renderer::AddRenderItem(std::string name, RenderItem r, RenderLayer::RenderLayer rl)
+void DX12Renderer::AddGeometryBatch(std::string name, GeometryBatch r, RenderLayer::RenderLayer rl)
 {
-	mRItems[rl].push_back(r);
-	mRenderItemPair[name] = std::pair<RenderLayer::RenderLayer, u32>(rl, mRItems[rl].size() - 1);
+	mAllGeometryBatches[rl].push_back(r);
+	mRenderItemPair[name] = std::pair<RenderLayer::RenderLayer, u32>(rl, mAllGeometryBatches[rl].size() - 1);
 }
 bool DX12Renderer::IsWindowActive(void)
 {
@@ -138,7 +138,7 @@ void DX12Renderer::DrawShadowMap()
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Shadow]).PSOData.Get());
 
 	u32 drawedObjects = 0;
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::Opaque], drawedObjects);
 
 	mDXCon->mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->mShadowMapResource.Get(),
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
@@ -188,19 +188,19 @@ void DX12Renderer::Draw()
 
 	u32 drawedObjects = 0;
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Opaque]).PSOData.Get());
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Opaque], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::Opaque], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Skybox]).PSOData.Get());
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Skybox], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::Skybox], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::AlphaTest]).PSOData.Get());
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::AlphaTest], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::AlphaTest], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::Transparent]).PSOData.Get());
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::Transparent], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::Transparent], drawedObjects);
 
 	mDXCon->mCmdList->SetPipelineState(mPSOSystem->GetPSO(LayerPSO[RenderLayer::ShadowDebug]).PSOData.Get());
-	DrawRenderItems(mDXCon->mCmdList.Get(), mRItems[RenderLayer::ShadowDebug], drawedObjects);
+	DrawRenderItems(mDXCon->mCmdList.Get(), mAllGeometryBatches[RenderLayer::ShadowDebug], drawedObjects);
 
 	mDXCon->mCmdList->SetDescriptorHeaps(1, mDXCon->mSRVHeap.GetAddressOf());
 	ImGui::Render();
@@ -230,7 +230,7 @@ void DX12Renderer::Update(float time, float deltaTime)
 	FrameResource& currentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 	CameraComponent comp = mCameraSystem->GetMainCameraComp();
 
-	UpdateObjectPassCB(mRItems, currentFrameResource.InstanceBuffer, comp.ViewMat, comp.FrustrumBounds);
+	UpdateObjectPassCB(mAllGeometryBatches, currentFrameResource.InstanceBuffer, comp.ViewMat, comp.FrustrumBounds);
 
 	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	mSceneBounds.Radius = 500.0f;
@@ -292,15 +292,15 @@ void DX12Renderer::BuildRootSignature()
 	));
 }
 
-void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem>&rItems, u32& INOUToffset)
+void DX12Renderer::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<GeometryBatch>&geoBatches, u32& INOUToffset)
 {
 	FrameResource mCurrentFrameResource = mFrameResourceSystem->GetCurrentFrameResource();
 
 	u32 instanceSize = sizeof(InstanceData);
 
-	for (int i = 0; i < rItems.size(); i++)
+	for (int i = 0; i < geoBatches.size(); i++)
 	{
-		RenderItem& ri = rItems[i];
+		GeometryBatch& ri = geoBatches[i];
 		MeshGeometry& geo = mGeometrySystem->GetMeshGeomerty(ri.GeoIndex);
 
 		cmdList->IASetVertexBuffers(0, 1, &geo.VertexBufferView());
@@ -356,7 +356,7 @@ void DX12Renderer::BuildSkyBox()
 	gInfo.submeshCount;
 
 	GeometryID gID = mGeometrySystem->LoadGeometry(gInfo);
-	RenderItem skybox;
+	GeometryBatch skybox;
 	skybox.GeoIndex = gID;
 	skybox.Bounds = sm.Bounds;
 	skybox.baseVertexLocation = sm.BaseVertexLocation;
@@ -368,7 +368,7 @@ void DX12Renderer::BuildSkyBox()
 	XMStoreFloat4x4(&SkyBoxData.World, XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
 	skybox.Instances.push_back(SkyBoxData);
 
-	mRItems[RenderLayer::Skybox].push_back(skybox);
+	mAllGeometryBatches[RenderLayer::Skybox].push_back(skybox);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentbackBufferView()

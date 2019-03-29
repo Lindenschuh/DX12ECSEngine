@@ -1,6 +1,6 @@
 #include "RenderSystem.h"
 
-RenderSystem::RenderSystem(EntityManger * manager, DX12Renderer * render)
+RenderSystem::RenderSystem(EntityManager * manager, DX12Renderer * render)
 {
 	eManager = manager;
 	renderer = render;
@@ -35,7 +35,7 @@ void RenderSystem::UpdateSystem(float time, float deltaTime)
 		{
 			RenderComponent& rComp = eManager->mRenderData[eId];
 			PositionComponent& pComp = eManager->mPositions[eId];
-			RenderItem& rItem = renderer->mRItems[rComp.layer][rComp.renderItemID];
+			GeometryBatch& rItem = renderer->mAllGeometryBatches[rComp.layer][rComp.renderItemID];
 			InstanceData&  instance = rItem.Instances[rItem.InstanceUpdated++];
 			FXMVECTOR position = XMLoadFloat3(&pComp.Position);
 			FXMVECTOR rotation = XMLoadFloat4(&pComp.RoationQuat);
@@ -63,7 +63,7 @@ void GuiSystem::UpdateSystem(float time, float deltaTime)
 	ImGui::NewFrame();
 }
 
-DebugWindowSystem::DebugWindowSystem(RenderSystem* system, EntityManger* manager)
+DebugWindowSystem::DebugWindowSystem(RenderSystem* system, EntityManager* manager)
 {
 	rSystem = system;
 	eManager = manager;
@@ -94,7 +94,7 @@ void DebugWindowSystem::UpdateSystem(float time, float deltaTime)
 	}
 }
 
-GlobalMovement::GlobalMovement(EntityManger * eManager)
+GlobalMovement::GlobalMovement(EntityManager * eManager)
 {
 	mEManager = eManager;
 }
@@ -152,7 +152,7 @@ void GlobalMovement::UpdateSystem(float time, float deltaTime)
 	}
 }
 
-VisibilitySystem::VisibilitySystem(EntityManger * eMangager)
+VisibilitySystem::VisibilitySystem(EntityManager * eMangager)
 {
 	mEManger = eMangager;
 }
@@ -164,7 +164,7 @@ void VisibilitySystem::UpdateSystem(float time, float deltaTime)
 		for (int i = 0; i < entities.size(); i++)
 		{
 			EntityID eId = entities[i];
-			mEManger->mFlags[eId] ^= EntityManger::FlagRenderData;
+			mEManger->mFlags[eId] ^= EntityManager::FlagRenderData;
 		}
 	}
 }

@@ -59,18 +59,18 @@ struct MaterialData
 	UINT MaterialPad1;
 };
 
-struct RenderItem
+struct GeometryBatch
 {
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	u32 ObjCBIndex = -1;
 	u32 GeoIndex = -1;
 
 	std::vector<InstanceData> Instances;
+	u32 InstanceUpdated = 0;
 
+	//Data for culling
 	BoundingBox Bounds;
 	u32 InstancesVisible = 0;
-	u32 InstanceUpdated = 0;
 
 	//IndexParameters
 	u32 IndexCount = 0;
@@ -244,7 +244,7 @@ struct PassConstants
 	Light Lights[MaxLights];
 };
 
-void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
+void static UpdateObjectPassCB(std::vector<GeometryBatch>* allGeoBatches,
 	UploadBuffer<InstanceData>* currentInstanceBuffer, XMFLOAT4X4 viewMat, BoundingFrustum CamFrustum)
 {
 	XMMATRIX view = XMLoadFloat4x4(&viewMat);
@@ -253,35 +253,35 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 	u32 instanceCount = 0;
 	for (int lay = 0; lay < RenderLayer::Count; lay++)
 	{
-		std::vector<RenderItem>& rItems = allRItems[lay];
+		std::vector<GeometryBatch>& geoBatches = allGeoBatches[lay];
 
 		if (lay == RenderLayer::Skybox || lay == RenderLayer::ShadowDebug)
 		{
-			if (rItems.size() == 0)
+			if (geoBatches.size() == 0)
 				continue;
 
-			RenderItem& rItem = rItems[0];
-			XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[0].World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[0].TexTransform);
+			GeometryBatch& geoBatch = geoBatches[0];
+			XMMATRIX world = XMLoadFloat4x4(&geoBatch.Instances[0].World);
+			XMMATRIX texTransform = XMLoadFloat4x4(&geoBatch.Instances[0].TexTransform);
 
 			InstanceData data;
 			XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
-			data.MaterialIndex = rItem.Instances[0].MaterialIndex;
+			data.MaterialIndex = geoBatch.Instances[0].MaterialIndex;
 			currentInstanceBuffer->CopyData(instanceCount++, data);
-			rItem.InstancesVisible = 1;
+			geoBatch.InstancesVisible = 1;
 			continue;
 		}
 
-		for (int i = 0; i < rItems.size(); i++)
+		for (int i = 0; i < geoBatches.size(); i++)
 		{
-			RenderItem& rItem = rItems[i];
+			GeometryBatch& geoBatch = geoBatches[i];
 			u32 instancesPerRItem = 0;
 
-			for (int j = 0; j < rItem.InstanceUpdated; j++)
+			for (int j = 0; j < geoBatch.InstanceUpdated; j++)
 			{
-				XMMATRIX world = XMLoadFloat4x4(&rItem.Instances[j].World);
-				XMMATRIX texTransform = XMLoadFloat4x4(&rItem.Instances[j].TexTransform);
+				XMMATRIX world = XMLoadFloat4x4(&geoBatch.Instances[j].World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&geoBatch.Instances[j].TexTransform);
 
 				XMMATRIX invWorld = XMMatrixInverse(&XMMatrixDeterminant(world), world);
 				XMMATRIX viewToLocal = XMMatrixMultiply(invView, invWorld);
@@ -290,17 +290,17 @@ void static UpdateObjectPassCB(std::vector<RenderItem>* allRItems,
 
 				CamFrustum.Transform(localFrustum, viewToLocal);
 
-				if (localFrustum.Contains(rItem.Bounds) != DISJOINT)
+				if (localFrustum.Contains(geoBatch.Bounds) != DISJOINT)
 				{
 					InstanceData data;
 					XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
 					XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
-					data.MaterialIndex = rItem.Instances[j].MaterialIndex;
+					data.MaterialIndex = geoBatch.Instances[j].MaterialIndex;
 					currentInstanceBuffer->CopyData(instanceCount++, data);
 					instancesPerRItem++;
 				}
 			}
-			rItem.InstancesVisible = instancesPerRItem;
+			geoBatch.InstancesVisible = instancesPerRItem;
 		}
 	}
 }
