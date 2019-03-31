@@ -141,6 +141,10 @@
     <ClCompile Include="ECS\LightSystem.cpp" />
     <ClCompile Include="ECS\PhysicSystem.cpp" />
     <ClCompile Include="ECS\PositionSystem.cpp" />
+    <ClCompile Include="Ext\imgui.cpp" />
+    <ClCompile Include="Ext\imgui_demo.cpp" />
+    <ClCompile Include="Ext\imgui_draw.cpp" />
+    <ClCompile Include="Ext\imgui_widgets.cpp" />
     <ClCompile Include="RenderCore\DX12Context.cpp" />
     <ClCompile Include="RenderCore\DXHelpers.cpp" />
     <ClCompile Include="ECS\RenderSystem.cpp" />
@@ -174,6 +178,12 @@
     <ClInclude Include="ECS\PhysicSystem.h" />
     <ClInclude Include="ECS\PositionSystem.h" />
     <ClInclude Include="Core\Default.h" />
+    <ClInclude Include="Ext\imconfig.h" />
+    <ClInclude Include="Ext\imgui.h" />
+    <ClInclude Include="Ext\imgui_internal.h" />
+    <ClInclude Include="Ext\imstb_rectpack.h" />
+    <ClInclude Include="Ext\imstb_textedit.h" />
+    <ClInclude Include="Ext\imstb_truetype.h" />
     <ClInclude Include="Ext\json.hpp" />
     <ClInclude Include="Ext\stb_image.h" />
     <ClInclude Include="Ext\stb_image_write.h" />
