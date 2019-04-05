@@ -125,6 +125,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Ext\imgui.cpp" />
+    <ClCompile Include="Ext\imgui_demo.cpp" />
+    <ClCompile Include="Ext\imgui_draw.cpp" />
+    <ClCompile Include="Ext\imgui_widgets.cpp" />
     <ClCompile Include="RenderCore\DX12Context.cpp" />
     <ClCompile Include="RenderCore\DXHelpers.cpp" />
     <ClCompile Include="ECS\RenderSystem.cpp" />
@@ -149,6 +153,12 @@
     <ClCompile Include="Util\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Ext\imconfig.h" />
+    <ClInclude Include="Ext\imgui.h" />
+    <ClInclude Include="Ext\imgui_internal.h" />
+    <ClInclude Include="Ext\imstb_rectpack.h" />
+    <ClInclude Include="Ext\imstb_textedit.h" />
+    <ClInclude Include="Ext\imstb_truetype.h" />
     <ClInclude Include="RenderCore\Camera.h" />
     <ClInclude Include="Core\Default.h" />
     <ClInclude Include="RenderCore\DX12Context.h" />

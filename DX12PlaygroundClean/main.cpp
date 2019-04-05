@@ -89,6 +89,79 @@ static void CreatePSO(DX12Renderer* ren)
 }
 
 //ECS
+//int main()
+//{
+//	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow");
+//
+//	buildBoxGeo(render->mGeometrySystem);
+//	loadTextures(render->mTextureSystem);
+//	buildMaterials(render->mMaterialSystem);
+//	CreatePSO(render);
+//	int boxCount = 100000 / 4;
+//	int maxWidth = (boxCount / 100);
+//	int height = 0;
+//	int width = 0;
+//	float maxSpeed = 8;
+//	float minSpeed = 3;
+//	GlobalMovement globalMovement(&gObjects);
+//
+//	for (int i = 0; i < boxCount; i++)
+//	{
+//		EntityID eId = gObjects.addEntity("box");
+//		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
+//		gObjects.mFlags[eId] |= (gObjects.FlagPosition | gObjects.FlagRenderData);
+//
+//		if (width > maxWidth)
+//		{
+//			width = 0;
+//			height += 10;
+//		}
+//		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
+//		width += 10;
+//		RenderItemDesc desc;
+//		desc.GeometryName = "boxGeo";
+//		desc.MaterialName = "wirefence";
+//		desc.SubMeshName = "box";
+//		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+//		desc.Layer = RenderLayer::Opaque;
+//		CreateRenderItem(&desc, render, i, &gObjects);
+//		globalMovement.AddToSystem(eId);
+//	}
+//
+//	render->FinishSetup();
+//	EntityID cameraId = gObjects.addEntity("camera");
+//	gObjects.mFlags[cameraId] |= gObjects.FlagCamera;
+//
+//	CameraSystem cameraSystem(&gObjects, render);
+//	cameraSystem.AddObjectToSystem(cameraId);
+//
+//	GuiComponent guiSystem;
+//	RenderSystem renderSystem(&gObjects, render);
+//	DebugWindowSystem debugSystem(&renderSystem, &gObjects);
+//	debugSystem.registerItem(0);
+//
+//	StopWatch sw;
+//
+//	while (render->IsWindowActive())
+//	{
+//		sw.Start();
+//		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+//
+//		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+//		cameraSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+//		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+//		sw.Stop();
+//		ImGui::Begin("Timer");
+//		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration()* 1000.0f);
+//		ImGui::End();
+//		render->Update();
+//		render->Draw();
+//	}
+//
+//	return 0;
+//}
+
+// OOP
 int main()
 {
 	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow");
@@ -97,142 +170,69 @@ int main()
 	loadTextures(render->mTextureSystem);
 	buildMaterials(render->mMaterialSystem);
 	CreatePSO(render);
+
+	std::vector<GameObject *> AllGameObjects;
+
 	int boxCount = 100000 / 4;
 	int maxWidth = (boxCount / 100);
 	int height = 0;
 	int width = 0;
 	float maxSpeed = 8;
 	float minSpeed = 3;
-	GlobalMovement globalMovement(&gObjects);
+
+	GameObject* gui = new GameObject();
+	gui->RegisterCompoment(new OOPGuiComponent());
+
+	AllGameObjects.push_back(gui);
+
+	GameObject* cam = new GameObject();
+	cam->RegisterCompoment(new OOPCameraComponent(render));
+	AllGameObjects.push_back(cam);
 
 	for (int i = 0; i < boxCount; i++)
 	{
-		EntityID eId = gObjects.addEntity("box");
-		gObjects.mVelocitys[eId].Init(minSpeed, maxSpeed);
-		gObjects.mFlags[eId] |= (gObjects.FlagPosition | gObjects.FlagRenderData);
+		GameObject* g = new GameObject();
+		AllGameObjects.push_back(g);
 
 		if (width > maxWidth)
 		{
 			width = 0;
 			height += 10;
 		}
-		gObjects.mPositions[eId].Position = XMFLOAT3(width, 0.0f, height);
+		g->transFormComp->Position = XMFLOAT3(width, 0.0f, height);
 		width += 10;
-		RenderItemDesc desc;
+		OOPRenderItemDesc desc;
 		desc.GeometryName = "boxGeo";
 		desc.MaterialName = "wirefence";
 		desc.SubMeshName = "box";
 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		desc.Layer = RenderLayer::Opaque;
-		CreateRenderItem(&desc, render, i, &gObjects);
-		globalMovement.AddToSystem(eId);
+		g->RegisterCompoment(new OOPRenderCompoment(render, &desc));
+		g->RegisterCompoment(new OOPMovementCompomenty());
 	}
 
 	render->FinishSetup();
-	EntityID cameraId = gObjects.addEntity("camera");
-	gObjects.mFlags[cameraId] |= gObjects.FlagCamera;
 
-	CameraSystem cameraSystem(&gObjects, render);
-	cameraSystem.AddObjectToSystem(cameraId);
-
-	GuiComponent guiSystem;
-	RenderSystem renderSystem(&gObjects, render);
-	DebugWindowSystem debugSystem(&renderSystem, &gObjects);
-	debugSystem.registerItem(0);
+	for (int i = 0; i < AllGameObjects.size(); i++)
+	{
+		AllGameObjects[i]->Init();
+	}
 
 	StopWatch sw;
-
 	while (render->IsWindowActive())
 	{
 		sw.Start();
-		guiSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-
-		globalMovement.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		cameraSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-		renderSystem.UpdateSystem(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		for (int i = 0; i < AllGameObjects.size(); i++)
+		{
+			AllGameObjects[i]->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
+		}
 		sw.Stop();
+
 		ImGui::Begin("Timer");
-		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration()* 1000.0f);
+		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration() * 1000.0f);
 		ImGui::End();
+
 		render->Update();
 		render->Draw();
 	}
-
-	return 0;
 }
-
-// OOP
-// int main()
-// {
-// 	DX12Renderer* render = new DX12Renderer(1280, 720, "Winnidow");
-//
-// 	buildBoxGeo(render->mGeometrySystem);
-// 	loadTextures(render->mTextureSystem);
-// 	buildMaterials(render->mMaterialSystem);
-// 	CreatePSO(render);
-//
-// 	std::vector<GameObject *> AllGameObjects;
-//
-// 	int boxCount = 100000 / 4;
-// 	int maxWidth = (boxCount / 100);
-// 	int height = 0;
-// 	int width = 0;
-// 	float maxSpeed = 8;
-// 	float minSpeed = 3;
-//
-// 	GameObject* gui = new GameObject();
-// 	gui->RegisterCompoment(new OOPGuiComponent());
-//
-// 	AllGameObjects.push_back(gui);
-//
-// 	GameObject* cam = new GameObject();
-// 	cam->RegisterCompoment(new OOPCameraComponent(render));
-// 	AllGameObjects.push_back(cam);
-//
-// 	for (int i = 0; i < boxCount; i++)
-// 	{
-// 		GameObject* g = new GameObject();
-// 		AllGameObjects.push_back(g);
-//
-// 		if (width > maxWidth)
-// 		{
-// 			width = 0;
-// 			height += 10;
-// 		}
-// 		g->transFormComp->Position = XMFLOAT3(width, 0.0f, height);
-// 		width += 10;
-// 		OOPRenderItemDesc desc;
-// 		desc.GeometryName = "boxGeo";
-// 		desc.MaterialName = "wirefence";
-// 		desc.SubMeshName = "box";
-// 		desc.PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-// 		desc.Layer = RenderLayer::Opaque;
-// 		g->RegisterCompoment(new OOPRenderCompoment(render, &desc));
-// 		g->RegisterCompoment(new OOPMovementCompomenty());
-// 	}
-//
-// 	render->FinishSetup();
-//
-// 	for (int i = 0; i < AllGameObjects.size(); i++)
-// 	{
-// 		AllGameObjects[i]->Init();
-// 	}
-//
-// 	StopWatch sw;
-// 	while (render->IsWindowActive())
-// 	{
-// 		sw.Start();
-// 		for (int i = 0; i < AllGameObjects.size(); i++)
-// 		{
-// 			AllGameObjects[i]->Update(ImGui::GetTime(), ImGui::GetIO().DeltaTime);
-// 		}
-// 		sw.Stop();
-//
-// 		ImGui::Begin("Timer");
-// 		ImGui::Text("Durschnittliche UpdateTime: %f ms", sw.GetDuration() * 1000.0f);
-// 		ImGui::End();
-//
-// 		render->Update();
-// 		render->Draw();
-// 	}
-// }
